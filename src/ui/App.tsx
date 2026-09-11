@@ -76,7 +76,7 @@ export function App() {
   const gebaeudeSetzen = useGebaeudeStore((s) => s.gebaeudeSetzen)
   const [dateiFehler, setDateiFehler] = useState<string | null>(null)
 
-  const exportieren = () => {
+  const exportieren = (dateiname?: string) => {
     const url = URL.createObjectURL(
       new Blob([serialisiereGebaeude(gebaeude, { exportiertAm: new Date().toISOString(), app: 'facility-planner' })], {
         type: 'application/json',
@@ -85,8 +85,10 @@ export function App() {
     const a = document.createElement('a')
     a.href = url
     // Der Dateiname trägt den Gebäudenamen: wer drei Häuser betreut, hat
-    // sonst dreimal `gebaeude.avfacility` im Download-Ordner.
-    a.download = `${gebaeude.name.replace(/[^\p{L}\p{N}_-]+/gu, '-') || 'gebaeude'}.avfacility`
+    // sonst dreimal `gebaeude.avfacility` im Download-Ordner. „Speichern
+    // unter…" reicht einen eigenen Namen herein; ohne ihn bleibt es bei
+    // diesem.
+    a.download = dateiname || `${gebaeude.name.replace(/[^\p{L}\p{N}_-]+/gu, '-') || 'gebaeude'}.avfacility`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -115,7 +117,7 @@ export function App() {
       <Kopfzeile
         name={name}
         onNeu={() => gebaeudeSetzen(leeresGebaeude('haus-1', 'Gebäude'))}
-        onSichern={exportieren}
+        onSichern={(dateiname) => exportieren(dateiname)}
         onLaden={(datei) => void importieren(datei)}
       />
       <nav className="reiter-leiste">

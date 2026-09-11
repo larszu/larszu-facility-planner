@@ -34,13 +34,18 @@ interface Props {
   /** Der Gebäudename — er steht links wie der App-Name im Cable Planner. */
   name: string
   onNeu: () => void
-  onSichern: () => void
+  /** Ohne Namen: der Vorgabename. Mit Namen: „Speichern unter…". */
+  onSichern: (dateiname?: string) => void
   onLaden: (datei: File) => void
 }
 
 export function Kopfzeile({ name, onNeu, onSichern, onLaden }: Props) {
   const [einstellungenOffen, setEinstellungenOffen] = useState(false)
   const dateiFeld = useRef<HTMLInputElement>(null)
+  // Derselbe Vorgabename, den `App.tsx` ohne Argument bildet — hier nur als
+  // VORSCHLAG im Eingabefeld. Gebildet wird der Dateiname weiterhin an einer
+  // Stelle, nämlich dort, wo auch die Datei entsteht.
+  const vorschlag = `${(name || 'gebaeude').replace(/[^\p{L}\p{N}_-]+/gu, '-')}.avfacility`
 
   return (
     <>
@@ -56,7 +61,14 @@ export function Kopfzeile({ name, onNeu, onSichern, onLaden }: Props) {
                   // Rückfrage, weil hier etwas VERLOREN geht: das Gebäude
                   // lebt im localStorage dieser App, und ein neues ersetzt
                   // es. Der Cable Planner fragt an derselben Stelle dasselbe.
-                  if (window.confirm('Neues Gebäude — das aktuelle wird ersetzt. Vorher sichern?')) return
+                  //
+                  // DIE VERNEINUNG IST DER PUNKT. Vorher stand hier
+                  // `if (window.confirm('… Vorher sichern?')) return` — wer
+                  // mit OK bestätigte, bekam NICHTS, und wer auf „Abbrechen"
+                  // drückte, verlor sein Gebäude. Ein Bestätigungsdialog,
+                  // dessen Abbruch die Tat ausführt, ist schlimmer als gar
+                  // keiner: er erzeugt genau das Vertrauen, das er bricht.
+                  if (!window.confirm('Neues Gebäude — das aktuelle wird ersetzt. Fortfahren?')) return
                   onNeu()
                 }}
               >
@@ -65,7 +77,23 @@ export function Kopfzeile({ name, onNeu, onSichern, onLaden }: Props) {
               <MenuePunkt onClick={() => { zu(); dateiFeld.current?.click() }}>Öffnen…</MenuePunkt>
               <MenueTrenner />
               <MenuePunkt onClick={() => { zu(); onSichern() }}>Speichern</MenuePunkt>
-              <MenuePunkt onClick={() => { zu(); onSichern() }}>Speichern unter…</MenuePunkt>
+              <MenuePunkt
+                onClick={() => {
+                  zu()
+                  // „Speichern unter…" unterscheidet sich vom „Speichern"
+                  // durch GENAU eine Sache: den Namen. Vorher riefen beide
+                  // Einträge dasselbe `onSichern()` — zwei Wege zu einer
+                  // Sache, und der zweite sah aus wie eine Fähigkeit, die es
+                  // nicht gab. Der Browser fragt beim Download nach dem ORT;
+                  // was er nicht fragt, ist der NAME, und den holt dieser
+                  // Eintrag.
+                  const gewaehlt = window.prompt('Dateiname', vorschlag)
+                  if (!gewaehlt) return
+                  onSichern(gewaehlt)
+                }}
+              >
+                Speichern unter…
+              </MenuePunkt>
             </>
           )}
         </Menue>
