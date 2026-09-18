@@ -133,6 +133,25 @@ Feld und die Lagen bleiben gültig — an Bildpixel gehängt wären sie beim
 nächsten Scan falsch, ohne dass es jemand merkt. Ohne Massstab wird gar nichts
 gesetzt: eine geratene Länge sähe im Plan aus wie eine Auskunft des Hauses.
 
-**Noch nicht hier:** Prüfprotokolle nach Norm, die Wartungshistorie, und die
-Verbindung zum Show-Plan (der Planer fragt den Vertrag noch nicht ab). Der Abgleich der sechs Fragen gegen den ADR-Text lebt
-in der Suite — dort liegen ADR und Code im selben Baum.
+**Die Verbindung zum Show-Plan steht — anders, als hier stand.** Der Satz
+„der Planer fragt den Vertrag noch nicht ab" war stehengeblieben;
+nachgemessen am 2026-09-18 im `cable-planner` liest der Planer die
+`.avfacility`-Datei (`project.hausAuskunft`), zeigt sie in einer eigenen
+Abschnitts-Ansicht und prüft **fünf** Dinge dagegen
+(`lib/drawingChecks.ts`): eine Dose, die es in der neuen Auskunft nicht mehr
+gibt · eine gedimmte Dose unter einem Schaltnetzteil · eine geschaltete Dose
+(Warnung, kein Fehler — für die Saalbeleuchtung ist sie richtig, für den
+Medienserver das Ende der Show) · eine Klinke, die es nicht mehr gibt · die
+Summe der Plangeräte gegen die angegebene Dauerleistung. Und er hält sich an
+dieselbe Regel wie dieses Repo: *wo das Haus schweigt, schweigt auch der
+Check.*
+
+**Was wirklich fehlt, ist schmaler:** die Datei trägt die ANGABEN, nicht die
+BEGRÜNDUNGEN. `belastbarkeit()` antwortet hier mit `{ bekannt: false, grund }`
+— der Planer sieht nur, dass nichts dasteht, und kann nicht sagen, warum.
+Das zu ändern heisst, `avplan-facility` um ein Feld zu erweitern, und das ist
+ein Versionssprung in beiden Repos und keine Änderung nebenbei.
+
+**Noch nicht hier:** Prüfprotokolle nach Norm und die Wartungshistorie. Der
+Abgleich der sechs Fragen gegen den ADR-Text lebt in der Suite — dort liegen
+ADR und Code im selben Baum.
