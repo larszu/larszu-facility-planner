@@ -49,6 +49,23 @@ die Schaltungslogik der Show ist dort gebaut und gehört dorthin.
 | `steuerklinken()` | KNX/DALI/Crestron: nur die benannten Klinken, nicht das Bus-Modell |
 | `hausStrecke(planKabelId)` | gehört diese Strecke dem Haus? |
 
+**KNX-Gruppenadressen lassen sich einlesen** statt abzutippen: die Ansicht
+„Steuerung" liest den Gruppenadress-Export, den ETS selbst schreibt (CSV) —
+nicht die Projektdatei `.knxproj`. Die ist ein ZIP mit dem ganzen Projekt,
+teilweise verschlüsselt, und ihr inneres Schema wechselt mit jeder
+ETS-Fassung; ein Leser dafür wäre geraten und beim nächsten Sprung still
+falsch. Der Trenner wird erkannt und nicht angenommen (derselbe Export ist je
+nach Gebietsschema semikolon- oder kommagetrennt), Ordner-Zeilen (`0/0/-`)
+werden übersprungen, Adressen ausserhalb der Protokollgrenzen gezählt statt
+durchgelassen.
+
+**Einlesen gibt nichts frei.** Eine ETS-Datei enthält alle Gruppenadressen des
+Hauses — auch Notlicht, Jalousien und Heizung. Heraus kommen deshalb
+*Kandidaten*: welcher davon eine Klinke wird, entscheidet ein Mensch, mit
+Richtung (Vorgabe `lesen`, die harmlose Hälfte) und Bedeutung. Der Gruppenname
+aus der ETS steht als Vorschlag im Feld; er stammt von dem, der die Anlage
+programmiert hat, nicht von dem, der freigibt.
+
 Der eine Rückweg ist `mangelMelden(hausObjektId, befund)`. Eine Show ändert das
 Haus nicht, sie benutzt es; die Ausnahme ist die Aussage eines Menschen über
 einen Defekt.

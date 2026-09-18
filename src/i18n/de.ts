@@ -61,6 +61,26 @@ export const de: Record<string, string> = {
   'control.direction': 'Richtung',
   'control.direction.read': 'lesen',
   'control.direction.write': 'schalten',
+  // ETS-Import (#2). „KNX", „ETS", „DPST" bleiben, wie sie heissen — Namen,
+  // keine Beschriftungen.
+  'ets.head': 'KNX-Gruppenadressen einlesen (ETS-Export)',
+  'ets.intro':
+    'Liest den Gruppenadress-Export, den ETS schreibt (CSV) – nicht die Projektdatei .knxproj. Einlesen gibt nichts frei: wähle die Adressen aus, die die Show benutzen darf, und sage zu jeder, was sie bewirkt.',
+  'ets.file': 'ETS-Gruppenadress-Export (CSV)',
+  'ets.done': '{n} Klinken freigegeben.',
+  'ets.found': '{n} Gruppenadressen · {ordner} Ordner-Zeilen übersprungen · {unlesbar} unlesbar',
+  'ets.duplicates': '{n} doppelte Adressen – die erste gilt',
+  'ets.table.caption':
+    'Der Gruppenname aus der ETS ist ein Vorschlag für die Bedeutung, kein Ersatz: er stammt von dem, der die Anlage programmiert hat, nicht von dem, der die Klinke freigibt.',
+  'ets.take': 'Übernehmen',
+  'ets.datapoint': 'Datenpunkt',
+  'ets.takeOne': '{address} freigeben',
+  'ets.directionOf': 'Richtung für {address}',
+  'ets.meaningOf': 'Bedeutung von {address}',
+  'ets.needMeaning': '{n} der gewählten Adressen haben noch keine Bedeutung – sie bleiben draussen.',
+  'ets.release': '{n} Klinken freigeben',
+  'ets.empty': 'Die Datei hat keine Zeilen.',
+  'ets.nothing': 'Keine Gruppenadresse in dieser Datei. Ist es der ETS-Gruppenadress-Export (CSV)?',
   'control.empty':
     'Keine Klinke freigegeben. Solange hier nichts steht, darf die Show die Haussteuerung nicht ansprechen — und das ist die richtige Vorgabe: eine Adresse, die niemand beschrieben hat, ist keine Freigabe.',
   'control.kind.broadcast': 'Broadcast — ALLES am Bus',
