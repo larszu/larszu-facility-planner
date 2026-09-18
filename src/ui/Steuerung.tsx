@@ -20,6 +20,7 @@ import { useGebaeudeStore } from '../domain/store/gebaeudeStore'
 import { steuerklinken } from '../domain/vertrag'
 import { adresseMehrdeutig } from '../domain/gebaeudeAuskunft'
 import type { Adressart, Steuersystem } from '../domain/modell'
+import { leseEtsExport, type EtsBefund, type EtsKandidat } from '../domain/etsImport'
 
 const SYSTEME: Steuersystem[] = ['knx', 'dali', 'crestron', 'vissonic', 'sonstige']
 
@@ -105,6 +106,13 @@ export function Steuerung() {
         </button>
       </Anlegen>
 
+      {/* ─── ETS-IMPORT (#2) ───────────────────────────────────────────
+          Der Leser liefert KANDIDATEN. Eine ETS-Datei enthaelt alle
+          Gruppenadressen des Hauses — auch Notlicht, Jalousien und
+          Heizung. Sie alle zu Klinken zu machen hiesse, eine Freigabe zu
+          erfinden, die niemand erteilt hat. */}
+      <EtsEinlesen />
+
       {klinken.length === 0 ? (
         <div className="leer-flaeche">
           <p className="leer">
@@ -166,5 +174,193 @@ export function Steuerung() {
         </TabelleRahmen>
       )}
     </section>
+  )
+}
+
+/**
+ * Gruppenadressen aus dem ETS-Export uebernehmen.
+ *
+ * Drei Schritte, und der mittlere ist der Punkt: lesen, AUSWAEHLEN,
+ * freigeben. Ohne den mittleren waere der Import ein Knopf, der das ganze
+ * Haus freigibt.
+ *
+ * Die Bedeutung ist auch hier Pflicht. Der Gruppenname aus der ETS steht als
+ * Vorschlag im Feld — er stammt vom Programmierer der Anlage und nicht vom
+ * Betreiber, der freigibt, und er laesst sich deshalb ueberschreiben.
+ */
+function EtsEinlesen() {
+  const { t, format } = useT()
+  const klinkeAnlegen = useGebaeudeStore((s) => s.klinkeAnlegen)
+  const [befund, setBefund] = useState<EtsBefund | null>(null)
+  const [gewaehlt, setGewaehlt] = useState<Record<string, boolean>>({})
+  const [bedeutungen, setBedeutungen] = useState<Record<string, string>>({})
+  const [richtungen, setRichtungen] = useState<Record<string, 'lesen' | 'schalten'>>({})
+  const [uebernommen, setUebernommen] = useState(0)
+
+  const einlesen = async (datei: File) => {
+    const b = leseEtsExport(await datei.text(), t)
+    setBefund(b)
+    setUebernommen(0)
+    setGewaehlt({})
+    setRichtungen({})
+    setBedeutungen(
+      Object.fromEntries(b.kandidaten.map((k: EtsKandidat) => [k.adresse, k.name])),
+    )
+  }
+
+  const freigeben = () => {
+    const nehmen = (befund?.kandidaten ?? []).filter(
+      (k) => gewaehlt[k.adresse] && (bedeutungen[k.adresse] ?? '').trim(),
+    )
+    for (const k of nehmen) {
+      klinkeAnlegen({
+        system: 'knx',
+        adresse: k.adresse,
+        // Die Vorgabe ist die harmlose Haelfte: Lesen aendert nichts.
+        richtung: richtungen[k.adresse] ?? 'lesen',
+        bedeutung: (bedeutungen[k.adresse] ?? '').trim(),
+      })
+    }
+    setUebernommen(nehmen.length)
+    setBefund(null)
+  }
+
+  const offen = (befund?.kandidaten ?? []).filter(
+    (k) => gewaehlt[k.adresse] && !(bedeutungen[k.adresse] ?? '').trim(),
+  ).length
+  const bereit = (befund?.kandidaten ?? []).filter(
+    (k) => gewaehlt[k.adresse] && (bedeutungen[k.adresse] ?? '').trim(),
+  ).length
+
+  return (
+    <div className="block">
+      <h3>{t('ets.head', 'Import KNX group addresses (ETS export)')}</h3>
+      <p className="hinweis">
+        {t(
+          'ets.intro',
+          'Reads the group address export ETS writes (CSV) — not the .knxproj project file. Nothing is released by reading: pick the addresses the show may use and say what each one does.',
+        )}
+      </p>
+      <input
+        type="file"
+        accept=".csv,text/csv,text/plain"
+        aria-label={t('ets.file', 'ETS group address export (CSV)')}
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) void einlesen(f)
+        }}
+      />
+
+      {uebernommen > 0 && (
+        <p className="befund ja">
+          {format(t('ets.done', '{n} hooks released.'), { n: uebernommen })}
+        </p>
+      )}
+
+      {befund && (
+        <>
+          <p>
+            {format(
+              t('ets.found', '{n} group addresses · {ordner} folder rows skipped · {unlesbar} unreadable'),
+              { n: befund.kandidaten.length, ordner: befund.ordner, unlesbar: befund.unlesbar },
+            )}
+            {befund.doppelt.length > 0 && (
+              <>
+                {' · '}
+                {format(t('ets.duplicates', '{n} duplicate addresses — the first one wins'), {
+                  n: befund.doppelt.length,
+                })}
+              </>
+            )}
+          </p>
+          {befund.grund && <p className="befund nein">{befund.grund}</p>}
+
+          {befund.kandidaten.length > 0 && (
+            <>
+              <TabelleRahmen>
+                <table>
+                  <caption>
+                    {t(
+                      'ets.table.caption',
+                      'The group name from ETS is a suggestion for the meaning, not a substitute: it comes from whoever programmed the installation, not from whoever releases the hook.',
+                    )}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th>{t('ets.take', 'Take')}</th>
+                      <th>{t('control.address', 'Address')}</th>
+                      <th>{t('ets.datapoint', 'Datapoint')}</th>
+                      <th>{t('control.direction', 'Direction')}</th>
+                      <th>{t('control.meaning', 'Meaning')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {befund.kandidaten.map((k) => (
+                      <tr key={k.adresse}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            aria-label={format(t('ets.takeOne', 'Release {address}'), {
+                              address: k.adresse,
+                            })}
+                            checked={!!gewaehlt[k.adresse]}
+                            onChange={(e) =>
+                              setGewaehlt((g) => ({ ...g, [k.adresse]: e.target.checked }))
+                            }
+                          />
+                        </td>
+                        <td>{k.adresse}</td>
+                        <td>{k.datenpunkt ?? '—'}</td>
+                        <td>
+                          <select
+                            aria-label={format(t('ets.directionOf', 'Direction for {address}'), {
+                              address: k.adresse,
+                            })}
+                            value={richtungen[k.adresse] ?? 'lesen'}
+                            onChange={(e) =>
+                              setRichtungen((r) => ({
+                                ...r,
+                                [k.adresse]: e.target.value as 'lesen' | 'schalten',
+                              }))
+                            }
+                          >
+                            <option value="lesen">{t('control.direction.read', 'read')}</option>
+                            <option value="schalten">{t('control.direction.write', 'switch')}</option>
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            aria-label={format(t('ets.meaningOf', 'Meaning of {address}'), {
+                              address: k.adresse,
+                            })}
+                            value={bedeutungen[k.adresse] ?? ''}
+                            placeholder={t('control.meaning.placeholder', 'What happens when it is used')}
+                            onChange={(e) =>
+                              setBedeutungen((b) => ({ ...b, [k.adresse]: e.target.value }))
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TabelleRahmen>
+
+              {offen > 0 && (
+                <p className="befund offen">
+                  {format(
+                    t('ets.needMeaning', '{n} of the picked addresses have no meaning yet — they stay out.'),
+                    { n: offen },
+                  )}
+                </p>
+              )}
+              <button type="button" className="knopf-primaer" disabled={bereit === 0} onClick={freigeben}>
+                {format(t('ets.release', 'Release {n} hooks'), { n: bereit })}
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </div>
   )
 }
