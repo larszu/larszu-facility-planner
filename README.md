@@ -90,6 +90,7 @@ npm run dev     # Vite, Port 4185 (fest, strictPort)
 npm run build   # tsc -b && vite build
 npm run lint
 npm test        # vitest + Grenze zum Show-Plan + Quellsprache
+npm run ci:complete    # jeder *:check wird auch wirklich gefahren
 
 npm run electron:dev   # Desktop-Fassung lokal starten (baut vorher)
 npm run dist:win       # Windows: Setup + Portable nach release/
