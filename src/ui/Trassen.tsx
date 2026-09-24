@@ -148,7 +148,7 @@ export function Trassen() {
           <p className="leer">
             {uebersetze(
               'routes.needRooms',
-              'A route connects two rooms. Create at least two rooms under "Connection points" first.',
+              'A route connects two rooms. Create at least two rooms under "Rooms" first.',
             )}
           </p>
         </div>

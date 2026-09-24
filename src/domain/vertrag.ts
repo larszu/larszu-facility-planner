@@ -184,11 +184,17 @@ export const ort = (gebaeude: Gebaeude, objektId: string, t: Uebersetzen = quell
       ),
     }
   }
+  // Die Etage kommt seit `avplan-facility` v2 aus dem Etagen-Objekt; nach
+  // aussen bleibt sie der NAME unter demselben Feld, damit kein Leser des
+  // Vertrags umlernen muss. Ein Verweis auf eine Etage, die es nicht gibt,
+  // ergibt keine: die Id waere kein Name, und ein geratener schon gar nicht.
+  const etage =
+    raum.etageId === undefined ? undefined : (gebaeude.etagen ?? []).find((e) => e.id === raum.etageId)
   return {
     gefunden: true,
     raumId: raum.id,
     raumName: raum.name,
-    ...(raum.etage === undefined ? {} : { etage: raum.etage }),
+    ...(etage === undefined ? {} : { etage: etage.name }),
     hausbezeichner: raum.hausbezeichner,
   }
 }
@@ -328,6 +334,16 @@ export const steuerklinken = (gebaeude: Gebaeude): readonly Steuerklinke[] => ge
 // ─── 6 · Gehoert diese Strecke dem Haus? ────────────────────────────────────
 
 /**
+ * Die Strecke — und, falls die Zuordnung eine nennt, die Ader (Issue #15).
+ *
+ * `ader` ist die Bezeichnung AUS DER ZUORDNUNG, nicht das Ader-Objekt: nennt
+ * die Zuordnung eine Ader, die die Strecke nicht fuehrt, bleibt die Angabe
+ * trotzdem stehen, statt still zu verschwinden. Stecker und Signal stehen in
+ * `adern` derselben Antwort.
+ */
+export type HausStreckeAuskunft = HausStrecke & { ader?: string }
+
+/**
  * Benutzt dieses Plan-Kabel eine feste Strecke des Hauses?
  *
  * NUR ueber die ERKLAERTE Zuordnung (ADR-002). Es gibt hier bewusst keinen
@@ -340,10 +356,13 @@ export const steuerklinken = (gebaeude: Gebaeude): readonly Steuerklinke[] => ge
 export const hausStrecke = (
   gebaeude: Gebaeude,
   planKabelId: string,
-): HausStrecke | undefined => {
+): HausStreckeAuskunft | undefined => {
   const z = gebaeude.zuordnungen.find((x) => x.planKabelId === planKabelId)
   if (!z) return undefined
-  return gebaeude.strecken.find((s) => s.id === z.hausStreckeId)
+  const strecke = gebaeude.strecken.find((s) => s.id === z.hausStreckeId)
+  if (!strecke) return undefined
+  // Ohne Ader bleibt die Antwort genau die von v1 — die ganze Strecke.
+  return typeof z.ader !== 'string' || z.ader.trim() === '' ? strecke : { ...strecke, ader: z.ader }
 }
 
 // ─── Der eine Rueckweg ──────────────────────────────────────────────────────

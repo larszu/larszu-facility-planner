@@ -20,16 +20,26 @@ import {
   heileGebaeude,
   leeresGebaeude,
   type Anschlusspunkt,
+  type Etage,
   type Gebaeude,
+  type HausStrecke,
   type Mangel,
   type Raum,
   type Schaltstelle,
   type Steuerklinke,
+  type StreckenAder,
   type Stromkreis,
   type Trasse,
   type Verteilung,
 } from '../modell'
 import { mangelMelden } from '../vertrag'
+import {
+  aderAnlegen,
+  aderUmbenennen,
+  etageEntfernen,
+  etageVerschieben,
+  type PflegeErgebnis,
+} from '../pflege'
 import type { Uebersetzen } from '../../i18n/quelle'
 
 const KEY = STORAGE_KEYS.gebaeude
@@ -73,8 +83,25 @@ interface GebaeudeState {
   gebaeude: Gebaeude
   /** Letzter gescheiterter Schreibvorgang. Leer, solange alles gut ging. */
   schreibfehler?: string
+  etageAnlegen: (e: Omit<Etage, 'id'>) => string
+  etageAendern: (id: string, patch: Partial<Omit<Etage, 'id'>>) => void
+  etageVerschieben: (id: string, richtung: -1 | 1) => void
+  /** Gibt den Grund zurueck, wenn noch Raeume auf der Etage stehen. */
+  etageEntfernen: (id: string, t?: Uebersetzen) => string | undefined
   raumAnlegen: (r: Omit<Raum, 'id'>) => string
   raumAendern: (id: string, patch: Partial<Omit<Raum, 'id'>>) => void
+  streckeAnlegen: (s: Omit<HausStrecke, 'id'>) => string
+  streckeAendern: (id: string, patch: Partial<Omit<HausStrecke, 'id' | 'adern'>>) => void
+  /** Gibt den Grund zurueck, wenn die Bezeichnung leer oder schon vergeben ist. */
+  aderAnlegen: (streckeId: string, ader: StreckenAder, t?: Uebersetzen) => string | undefined
+  /**
+   * Wie `aderAnlegen`; Zuordnungen auf die Ader ziehen mit (`pflege.ts`).
+   * Adern werden ueber ihre STELLE angesprochen — ein eingelesener Name kann
+   * doppelt vorkommen.
+   */
+  aderUmbenennen: (streckeId: string, stelle: number, neu: string, t?: Uebersetzen) => string | undefined
+  aderAendern: (streckeId: string, stelle: number, patch: Partial<Omit<StreckenAder, 'nr'>>) => void
+  aderEntfernen: (streckeId: string, stelle: number) => void
   punktAnlegen: (p: Omit<Anschlusspunkt, 'id'>) => string
   punktAendern: (id: string, patch: Partial<Omit<Anschlusspunkt, 'id'>>) => void
   kreisAnlegen: (k: Omit<Stromkreis, 'id'>) => string
@@ -107,6 +134,22 @@ const mit = (
     return { gebaeude: neu, schreibfehler: sichern(neu) }
   })
 
+/** Ein Pflege-Schritt, der abgelehnt werden kann: uebernehmen oder den Grund zurueckgeben. */
+const pflegen = (
+  set: (fn: (s: GebaeudeState) => Partial<GebaeudeState>) => void,
+  ergebnis: PflegeErgebnis,
+): string | undefined => {
+  if (!ergebnis.ok) return ergebnis.grund
+  mit(set, () => ergebnis.gebaeude)
+  return undefined
+}
+
+/** Eine Aenderung an EINER Strecke. */
+const anStrecke = (g: Gebaeude, id: string, aendern: (s: HausStrecke) => HausStrecke): Gebaeude => ({
+  ...g,
+  strecken: g.strecken.map((s) => (s.id === id ? aendern(s) : s)),
+})
+
 export const useGebaeudeStore = create<GebaeudeState>((set, get) => ({
   gebaeude: laden(),
   gebaeudeSetzen: (g) =>
@@ -114,6 +157,19 @@ export const useGebaeudeStore = create<GebaeudeState>((set, get) => ({
       const geheilt = heileGebaeude(g)
       return { gebaeude: geheilt, schreibfehler: sichern(geheilt) }
     }),
+
+  etageAnlegen: (e) => {
+    const id = uuidv4()
+    mit(set, (g) => ({ ...g, etagen: [...g.etagen, { ...e, id }] }))
+    return id
+  },
+  etageAendern: (id, patch) =>
+    mit(set, (g) => ({
+      ...g,
+      etagen: g.etagen.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+    })),
+  etageVerschieben: (id, richtung) => mit(set, (g) => etageVerschieben(g, id, richtung)),
+  etageEntfernen: (id, t) => pflegen(set, etageEntfernen(get().gebaeude, id, t)),
 
   raumAnlegen: (r) => {
     const id = uuidv4()
@@ -135,6 +191,35 @@ export const useGebaeudeStore = create<GebaeudeState>((set, get) => ({
       ...g,
       punkte: g.punkte.map((p) => (p.id === id ? { ...p, ...patch } : p)),
     })),
+  streckeAnlegen: (st) => {
+    const id = uuidv4()
+    mit(set, (g) => ({ ...g, strecken: [...g.strecken, { ...st, id }] }))
+    return id
+  },
+  streckeAendern: (id, patch) => mit(set, (g) => anStrecke(g, id, (s) => ({ ...s, ...patch }))),
+  aderAnlegen: (streckeId, ader, t) => pflegen(set, aderAnlegen(get().gebaeude, streckeId, ader, t)),
+  aderUmbenennen: (streckeId, stelle, neu, t) =>
+    pflegen(set, aderUmbenennen(get().gebaeude, streckeId, stelle, neu, t)),
+  aderAendern: (streckeId, stelle, patch) =>
+    mit(set, (g) =>
+      anStrecke(g, streckeId, (s) => ({
+        ...s,
+        adern: (s.adern ?? []).map((a, i) => (i === stelle ? { ...a, ...patch } : a)),
+      })),
+    ),
+  // Die letzte Ader entfernt heisst: die Strecke ist nicht mehr beschrieben.
+  // Eine leere Liste stuende sonst fuer „fuehrt nichts", und das sagt niemand,
+  // der eine fest verlegte Leitung eintraegt. Zuordnungen auf die entfernte
+  // Ader bleiben stehen und erscheinen als unbekannte Ader — sie sind eine
+  // Erklaerung des Plans und nicht dieses Werkzeugs, das sie loeschen duerfte.
+  aderEntfernen: (streckeId, stelle) =>
+    mit(set, (g) =>
+      anStrecke(g, streckeId, (s) => {
+        const { adern, ...ohne } = s
+        const rest = (adern ?? []).filter((_, i) => i !== stelle)
+        return rest.length > 0 ? { ...ohne, adern: rest } : ohne
+      }),
+    ),
   kreisAnlegen: (k) => {
     const id = uuidv4()
     mit(set, (g) => ({ ...g, stromkreise: [...g.stromkreise, { ...k, id }] }))

@@ -107,7 +107,7 @@ export function Grundriss() {
           <p className="leer">
             {t(
               'plan.noRoom',
-              'No room created yet. A floor plan belongs to a room — create one under "Connection points" first.',
+              'No room created yet. A floor plan belongs to a room — create one under "Rooms" first.',
             )}
           </p>
         </div>

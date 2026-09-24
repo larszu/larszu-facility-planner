@@ -28,6 +28,14 @@ export const de: Record<string, string> = {
   // gibt es keine Oberfläche, die eine Sprache hätte.
   'building.default': 'Gebäude',
 
+  // ── Pflege, die abgelehnt werden kann (domain/pflege.ts) ──
+  'care.core.duplicate': 'Diese Strecke hat schon eine Ader „{nr}".',
+  'care.core.empty': 'Eine Ader braucht eine Bezeichnung — über sie nennt ein Plan-Kabel die Ader.',
+  'care.core.missing': 'Die Strecke „{id}" hat keine Ader an Stelle {stelle}.',
+  'care.floor.inUse':
+    'Die Etage „{name}" ist noch diesen Räumen zugeordnet: {raeume}. Hänge sie zuerst an eine andere Etage — sonst verlören sie ihre Etage, ohne dass es jemand merkt.',
+  'care.run.missing': 'Es gibt keine Strecke mit der Id „{id}".',
+
   // ── Was überall gleich heißt ──
   'common.add': 'Anlegen',
   'common.kind': 'Art',
@@ -170,7 +178,7 @@ export const de: Record<string, string> = {
   'plan.noScale':
     'Ohne Massstab wird nichts gesetzt. Ein Klick ins Bild ist ein Bruchteil einer Bildbreite; erst „Meter je Bildbreite" macht daraus eine Länge. Eine hier geratene Zahl sähe im Plan aus wie eine Auskunft des Hauses.',
   'plan.noRoom':
-    'Noch kein Raum angelegt. Ein Grundriss gehört zu einem Raum — lege zuerst unter „Anschlusspunkte" einen an.',
+    'Noch kein Raum angelegt. Ein Grundriss gehört zu einem Raum — lege zuerst unter „Räume" einen an.',
   'plan.notPlaced': 'noch nicht verortet',
   'plan.pick.aria': 'Punkt zum Setzen',
   'plan.pick.none': 'Punkt zum Setzen …',
@@ -215,6 +223,35 @@ export const de: Record<string, string> = {
   'points.room.placeholder': 'Raum (wird mit angelegt)',
   'points.system.aria': 'Netzform von {name}',
 
+  // ── Räume und Etagen ──
+  'rooms.add': 'Raum anlegen',
+  'rooms.create.head': 'Raum anlegen',
+  'rooms.empty':
+    'Noch kein Raum. Der Plan findet alles in diesem Gebäude über den Raum — unter dem Bezeichner, den das Haus benutzt, nicht unter einem, den der Plan erfindet.',
+  'rooms.floor': 'Etage',
+  'rooms.floor.add': 'Etage anlegen',
+  'rooms.floor.aria': 'Etage von {name}',
+  'rooms.floor.caption':
+    'Die Reihenfolge dieser Liste ist die Reihenfolge der Etagen. Höhe: Fertigfußboden in Metern über dem Bezug des Hauses — leer heißt nicht angegeben, nicht 0.',
+  'rooms.floor.col.order': 'Reihenfolge',
+  'rooms.floor.col.rooms': 'Räume',
+  'rooms.floor.create.head': 'Etage anlegen',
+  'rooms.floor.down.aria': '{name} nach unten schieben',
+  'rooms.floor.empty':
+    'Noch keine Etage erfasst. Eine Etage wird hier einmal benannt und am Raum gewählt — so wird aus einem Tippfehler keine zweite Etage.',
+  'rooms.floor.level': 'Höhe (m)',
+  'rooms.floor.level.aria': 'Höhe von {name} in Metern',
+  'rooms.floor.missing': 'fehlende Etage ({id})',
+  'rooms.floor.name.aria': 'Bezeichnung der Etage {n}',
+  'rooms.floor.name.placeholder': 'z. B. EG, 1. OG, UG',
+  'rooms.floor.up.aria': '{name} nach oben schieben',
+  'rooms.head': 'Räume',
+  'rooms.houseId': 'Hausbezeichner',
+  'rooms.houseId.aria': 'Hausbezeichner von {name}',
+  'rooms.houseId.placeholder': 'wie am Türschild (z. B. EG.01)',
+  'rooms.name.aria': 'Bezeichnung des Raums {id}',
+  'rooms.name.placeholder': 'z. B. Großer Saal',
+
   // ── Trassen ──
   'routes.add': 'Trasse anlegen',
   'routes.best.free': 'frei',
@@ -236,11 +273,54 @@ export const de: Record<string, string> = {
   'routes.name': 'Bezeichnung',
   'routes.name.placeholder': 'Bezeichnung (z. B. Leerrohr Bühne–Regie)',
   'routes.needRooms':
-    'Eine Trasse verbindet zwei Räume. Lege zuerst unter „Anschlusspunkte" mindestens zwei Räume an.',
+    'Eine Trasse verbindet zwei Räume. Lege zuerst unter „Räume" mindestens zwei Räume an.',
   'routes.note': 'Hinweis',
   'routes.note.placeholder': 'Was liegt schon drin?',
   'routes.to': 'nach …',
   'routes.to.aria': 'Nach Raum',
+
+  // ── Hausstrecken ──
+  'runs.add': 'Strecke anlegen',
+  'runs.col.cores': 'Adern',
+  'runs.col.fromPlate': 'Endblende (von)',
+  'runs.col.toPlate': 'Endblende (nach)',
+  'runs.core.add': 'Ader anlegen',
+  'runs.core.col.occupancy': 'Belegung',
+  'runs.core.conflict': 'Konflikt: {kabel} auf derselben Ader',
+  'runs.core.connector': 'Stecker',
+  'runs.core.connector.aria': 'Stecker der Ader {nr}',
+  'runs.core.connector.placeholder': 'z. B. BNC, LC-Duplex, RJ45',
+  'runs.core.create.head': 'Ader anlegen',
+  'runs.core.free': 'frei',
+  'runs.core.nr': 'Ader',
+  'runs.core.nr.aria': 'Bezeichnung der Ader {nr}',
+  'runs.core.nr.placeholder': 'z. B. 3',
+  'runs.core.signal': 'Signal',
+  'runs.core.signal.aria': 'Signal der Ader {nr}',
+  'runs.core.signal.placeholder': 'z. B. 12G-SDI, Dante, SMF',
+  'runs.core.taken': 'belegt durch {kabel}',
+  'runs.core.unknown': 'unbekannt — ein Plan-Kabel benutzt die Strecke, ohne eine Ader zu nennen',
+  'runs.cores.count': '{n} Adern · {belegt} belegt',
+  'runs.cores.empty':
+    'Für diese Strecke ist keine Ader beschrieben. Bis dahin kann ein Plan-Kabel sie nur als Ganzes benutzen.',
+  'runs.cores.head': 'Adern und Belegung',
+  'runs.cores.none': 'nicht beschrieben',
+  'runs.create.head': 'Hausstrecke anlegen',
+  'runs.duplicateCore':
+    'Die Aderbezeichnung „{nr}" kommt mehr als einmal vor. Eine Zuordnung darauf kann nicht sagen, welche gemeint ist.',
+  'runs.empty': 'Noch keine Hausstrecke erfasst.',
+  'runs.ends': '{von} ({vonBlende}) → {nach} ({nachBlende})',
+  'runs.fromPlate.aria': 'Endblende von {name} im Von-Raum',
+  'runs.name.placeholder': 'z. B. Tie-Line Bühne–Regie',
+  'runs.needRooms':
+    'Eine Hausstrecke verbindet zwei Räume. Lege zuerst unter „Räume" mindestens zwei Räume an.',
+  'runs.pick.aria': 'Hausstrecke',
+  'runs.plate.placeholder': 'z. B. B2, Wandfeld West',
+  'runs.toPlate.aria': 'Endblende von {name} im Nach-Raum',
+  'runs.unknownCore':
+    'Plan-Kabel {kabel} ist der Ader „{ader}" zugeordnet, die diese Strecke nicht hat. Die Zuordnung bleibt stehen, bis der Plan sie ändert.',
+  'runs.whole':
+    'Als Ganzes benutzt von {kabel}. Welche Ader das belegt, ist nicht angegeben — deshalb gilt keine Ader dieser Strecke als frei.',
 
   // ── Einstellungen ──
   'settings.about': 'Über',
@@ -296,12 +376,18 @@ export const de: Record<string, string> = {
   'tab.distribution.q': 'Welche Kreise hängen zusammen — und woran?',
   'tab.floorPlan': 'Grundriss',
   'tab.floorPlan.q': 'Wo im Raum sitzt dieser Punkt — nicht nur in welchem?',
+  'tab.rooms': 'Räume',
+  'tab.rooms.q': 'Welche Etagen und Räume hat das Gebäude — unter seinen eigenen Namen?',
+  'tab.runs': 'Hausstrecken',
+  'tab.runs.q': 'Welche feste Leitung kann ein Plan-Kabel benutzen — und welche ihrer Adern sind noch frei?',
   // ── Statusleiste (suite#231, ADR-007 Abschnitt 6) ──────────────────────
   // Je Reiter eine Zahl aus dem Modell. Nichts davon wertet.
   'status.points': '{n} Anschlusspunkte · {r} Raeume',
   'status.floorPlan': '{n} von {all} Punkten verortet',
   'status.distribution': '{n} Verteilungen · {c} Stromkreise',
   'status.routes': '{n} Trassen',
+  'status.rooms': '{e} Etagen · {r} Räume',
+  'status.runs': '{n} Hausstrecken · {a} Adern',
   'status.switchPoints': '{n} Schaltstellen',
   'status.control': '{n} Steuerklinken',
   'status.defects': '{n} Maengel gemeldet',

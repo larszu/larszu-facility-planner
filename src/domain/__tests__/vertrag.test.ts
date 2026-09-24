@@ -79,8 +79,9 @@ const punkt = (teil: Partial<Anschlusspunkt> & { id: string }): Anschlusspunkt =
 
 const haus = (): Gebaeude => ({
   ...leeresGebaeude('h1', 'Stadthalle'),
+  etagen: [{ id: 'e-eg', name: 'EG', hoeheM: 0 }],
   raeume: [
-    { id: 'r-saal', name: 'Grosser Saal', etage: 'EG', hausbezeichner: 'EG-01' },
+    { id: 'r-saal', name: 'Grosser Saal', etageId: 'e-eg', hausbezeichner: 'EG-01' },
     { id: 'r-technik', name: 'Technikraum', hausbezeichner: 'UG-04' },
   ],
   verteilungen: [
@@ -186,6 +187,25 @@ describe('ort', () => {
 
   it('laesst etage weg, wenn sie nicht angegeben ist', () => {
     const o = ort(haus(), 'v-uv1')
+    expect('etage' in o).toBe(false)
+  })
+
+  it('die Etage kommt als NAME aus dem Etagen-Objekt — Feld und Typ wie vor v2', () => {
+    // Die Antwort ist dieselbe wie zu Freitext-Zeiten: `etage: string`. Der
+    // Leser des Vertrags merkt vom Umbau nichts, auch nicht beim Umbenennen.
+    const g = haus()
+    g.etagen = [{ id: 'e-eg', name: 'Erdgeschoss' }]
+    const o = ort(g, 'p-nord')
+    expect(o.gefunden && o.etage).toBe('Erdgeschoss')
+    expect(JSON.stringify(o)).not.toContain('e-eg')
+  })
+
+  it('ein Verweis auf eine Etage, die es nicht gibt, ergibt KEINE Etage', () => {
+    // Die Id waere kein Name, und ein geratener schon gar nicht.
+    const g = haus()
+    g.etagen = []
+    const o = ort(g, 'p-nord')
+    expect(o.gefunden).toBe(true)
     expect('etage' in o).toBe(false)
   })
 
@@ -308,6 +328,43 @@ describe('hausStrecke', () => {
     const g = haus()
     g.zuordnungen = [{ planKabelId: 'kabel-99', hausStreckeId: 's-weg' }]
     expect(hausStrecke(g, 'kabel-99')).toBeUndefined()
+  })
+
+  it('ohne Ader ist die Antwort genau die Strecke — kein Feld `ader`', () => {
+    const g = haus()
+    const s = hausStrecke(g, 'kabel-12')
+    expect(s).toEqual(g.strecken[0])
+    expect('ader' in (s as object)).toBe(false)
+  })
+
+  it('nennt die Zuordnung eine Ader, steht sie in der Antwort (Issue #15)', () => {
+    const g = haus()
+    g.strecken = [
+      {
+        ...g.strecken[0]!,
+        vonBlende: 'B2',
+        adern: [{ nr: '1', stecker: 'BNC', signal: '12G-SDI' }, { nr: '2', stecker: 'BNC' }],
+      },
+    ]
+    g.zuordnungen = [{ planKabelId: 'kabel-12', hausStreckeId: 's-steig', ader: '2' }]
+    const s = hausStrecke(g, 'kabel-12')
+    // Die bisherigen Felder bleiben, `ader` kommt dazu.
+    expect(s).toMatchObject({ id: 's-steig', vonRaumId: 'r-saal', vonBlende: 'B2', ader: '2' })
+    expect(s?.adern?.find((a) => a.nr === s.ader)?.stecker).toBe('BNC')
+  })
+
+  it('eine Ader, die die Strecke nicht fuehrt, bleibt als Angabe stehen', () => {
+    // Still weglassen hiesse: aus „liegt auf Ader 9" wird „liegt auf der
+    // Strecke". Wer dann nachsieht, findet eine Ader weniger, als erklaert war.
+    const g = haus()
+    g.zuordnungen = [{ planKabelId: 'kabel-12', hausStreckeId: 's-steig', ader: '9' }]
+    expect(hausStrecke(g, 'kabel-12')?.ader).toBe('9')
+  })
+
+  it('eine leere Ader-Angabe nennt keine Ader', () => {
+    const g = haus()
+    g.zuordnungen = [{ planKabelId: 'kabel-12', hausStreckeId: 's-steig', ader: '  ' }]
+    expect('ader' in (hausStrecke(g, 'kabel-12') as object)).toBe(false)
   })
 })
 
