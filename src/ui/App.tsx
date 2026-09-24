@@ -11,22 +11,25 @@
 // aus ADR-006 trennt beides: *Wird das am Abbautag wieder eingepackt?* Ja →
 // Show-Plan. Nein → hierher.
 //
-// SIEBEN SICHTEN FÜR DIE SECHS FRAGEN DES VERTRAGS:
+// NEUN SICHTEN FÜR DIE SECHS FRAGEN DES VERTRAGS:
 //   Anschlusspunkte  was ein Punkt hergibt, wo er ist, ob er frei ist
+//   Räume            Etagen und Räume unter dem Namen des Hauses (cable#911)
 //   Grundriss        wo im Raum ein Punkt sitzt, in Metern (Issue #1)
 //   Verteilung       welche Kreise zusammenhängen, und woran
 //   Trassen          welcher Weg noch etwas aufnimmt (Issue #1)
+//   Hausstrecken     welche feste Leitung, welche Ader noch frei (Issue #15)
 //   Schaltstellen    wer eine Dose abschaltet, und wo er sitzt (Issue #1)
 //   Steuerung        welche Klinken der Show offenstehen
 //   Mängel           der eine Rückweg — was von aussen gemeldet wurde
 //
-// SIEBEN SICHTEN, WEITERHIN SECHS VERTRAGSFRAGEN. Grundriss, Trassen und
+// NEUN SICHTEN, WEITERHIN SECHS VERTRAGSFRAGEN. Grundriss, Trassen und
 // Schaltstellen sind KEINE neuen Fragen des Plans — er stellt sie nicht. Sie
 // sind Daten, die dieses Werkzeug über sein eigenes Gebäude führt, und ihre
-// Auskünfte
-// stehen deshalb in `domain/gebaeudeAuskunft.ts` und nicht im Vertrag. Eine
-// siebte Frage in `VERTRAG_FRAGEN` änderte stillschweigend einen Vertrag,
-// den zwei Repos lesen.
+// Auskünfte stehen deshalb in `domain/gebaeudeAuskunft.ts` und nicht im
+// Vertrag. Eine siebte Frage in `VERTRAG_FRAGEN` änderte stillschweigend
+// einen Vertrag, den zwei Repos lesen. Räume und Hausstrecken dagegen PFLEGEN
+// die Daten zweier bestehender Fragen (`ort`, `hausStrecke`), die bis
+// 2026-09-24 keine eigene Sicht hatten.
 // ───────────────────────────────────────────────────────────────────────────
 import { useState } from 'react'
 import { useT } from '../i18n'
@@ -40,13 +43,17 @@ import { Trassen } from './Trassen'
 import { Grundriss } from './Grundriss'
 import { Schaltstellen } from './Schaltstellen'
 import { Maengel } from './Maengel'
+import { Raeume } from './Raeume'
+import { Strecken } from './Strecken'
 import { useGebaeudeStore } from '../domain/store/gebaeudeStore'
 
 type Reiter =
   | 'punkte'
+  | 'raeume'
   | 'grundriss'
   | 'verteilung'
   | 'trassen'
+  | 'strecken'
   | 'schaltstellen'
   | 'steuerung'
   | 'maengel'
@@ -61,9 +68,11 @@ type UebersetzFn = (key: string, en: string) => string
  */
 const reiterListe = (t: UebersetzFn): { id: Reiter; titel: string; frage: string }[] => [
   { id: 'punkte', titel: t('tab.points', 'Connection points'), frage: t('tab.points.q', 'What does this point provide, where is it, and is it free?') },
+  { id: 'raeume', titel: t('tab.rooms', 'Rooms'), frage: t('tab.rooms.q', 'Which floors and rooms does the building have — under its own names?') },
   { id: 'grundriss', titel: t('tab.floorPlan', 'Floor plan'), frage: t('tab.floorPlan.q', 'Where in the room does this point sit — not just in which one?') },
   { id: 'verteilung', titel: t('tab.distribution', 'Distribution'), frage: t('tab.distribution.q', 'Which circuits belong together — and to what?') },
   { id: 'trassen', titel: t('tab.routes', 'Cable routes'), frage: t('tab.routes.q', 'Which route between two rooms still takes something?') },
+  { id: 'strecken', titel: t('tab.runs', 'House runs'), frage: t('tab.runs.q', 'Which fixed line can a plan cable use — and which of its cores are still free?') },
   { id: 'schaltstellen', titel: t('tab.switchPoints', 'Switch points'), frage: t('tab.switchPoints.q', 'Who switches this outlet off — and where do they sit?') },
   { id: 'steuerung', titel: t('tab.control', 'Control'), frage: t('tab.control.q', 'Which hooks of the building control are open to the show?') },
   { id: 'maengel', titel: t('tab.defects', 'Defects'), frage: t('tab.defects.q', 'What has somebody from outside reported about this building?') },
@@ -75,7 +84,7 @@ const reiterListe = (t: UebersetzFn): { id: Reiter; titel: string; frage: string
  * ADR-007 Abschnitt 6 sagt „Meldungen links · Zaehler rechts" und dazu, was
  * dort NICHT hingehoert: „Werte, die eine Produktentscheidung waeren — eine
  * Komplexitaet, eine Ampel, eine Bewertung". Alles hier ist eine Anzahl aus
- * dem Modell; keine der sieben Zeilen wertet.
+ * dem Modell; keine der Zeilen wertet.
  *
  * Die Maengel zaehlen nur, WIEVIELE gemeldet wurden — nicht, wieviele davon
  * noch offen sind. `Mangel` hat kein Feld dafuer (`modell.ts`), und eine Zahl,
@@ -89,6 +98,11 @@ const zaehler = (
   g: Gebaeude,
 ): string => {
   switch (reiter) {
+    case 'raeume':
+      return format(t('status.rooms', '{e} floors · {r} rooms'), {
+        e: g.etagen.length,
+        r: g.raeume.length,
+      })
     case 'grundriss':
       return format(t('status.floorPlan', '{n} of {all} points located'), {
         n: g.punkte.filter((p) => p.lage).length,
@@ -101,6 +115,11 @@ const zaehler = (
       })
     case 'trassen':
       return format(t('status.routes', '{n} cable routes'), { n: g.trassen.length })
+    case 'strecken':
+      return format(t('status.runs', '{n} house runs · {a} cores'), {
+        n: g.strecken.length,
+        a: g.strecken.reduce((summe, s) => summe + (s.adern?.length ?? 0), 0),
+      })
     case 'schaltstellen':
       return format(t('status.switchPoints', '{n} switch points'), { n: g.schaltstellen.length })
     case 'steuerung':
@@ -221,9 +240,11 @@ export function App() {
         )}
         <p className="frage">{aktiv.frage}</p>
         {reiter === 'punkte' && <Anschlusspunkte />}
+        {reiter === 'raeume' && <Raeume />}
         {reiter === 'grundriss' && <Grundriss />}
         {reiter === 'verteilung' && <Verteilung />}
         {reiter === 'trassen' && <Trassen />}
+        {reiter === 'strecken' && <Strecken />}
         {reiter === 'schaltstellen' && <Schaltstellen />}
         {reiter === 'steuerung' && <Steuerung />}
         {reiter === 'maengel' && <Maengel />}

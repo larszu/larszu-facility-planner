@@ -47,7 +47,7 @@ die Schaltungslogik der Show ist dort gebaut und gehört dorthin.
 | `kreisGeschwister(punktId)` | was am selben RCD hängt |
 | `verfuegbarkeit(punktId)` | frei / belegt / geschaltet / gedimmt |
 | `steuerklinken()` | KNX/DALI/Crestron: nur die benannten Klinken, nicht das Bus-Modell |
-| `hausStrecke(planKabelId)` | gehört diese Strecke dem Haus? |
+| `hausStrecke(planKabelId)` | gehört diese Strecke dem Haus — und auf welcher Ader liegt das Kabel? |
 
 **KNX-Gruppenadressen lassen sich einlesen** statt abzutippen: die Ansicht
 „Steuerung" liest den Gruppenadress-Export, den ETS selbst schreibt (CSV) —
@@ -65,6 +65,45 @@ Hauses — auch Notlicht, Jalousien und Heizung. Heraus kommen deshalb
 Richtung (Vorgabe `lesen`, die harmlose Hälfte) und Bedeutung. Der Gruppenname
 aus der ETS steht als Vorschlag im Feld; er stammt von dem, der die Anlage
 programmiert hat, nicht von dem, der freigibt.
+
+**Etagen sind eine Liste, kein Freitext** (cable-planner#911). Die Sicht
+„Räume" pflegt die Etagen des Hauses — Name, Höhe der Fertigfußboden-Oberkante
+in Metern über dem Bezug des Hauses, Reihenfolge — und jeder Raum wählt seine
+Etage daraus. Die Reihenfolge ist die der Liste; es gibt kein Rangfeld daneben.
+Eine fehlende Höhe bleibt leer und wird nicht zu 0. Eine Etage, auf der noch
+Räume stehen, lässt sich nicht entfernen: die Ablehnung nennt die Räume, statt
+sie still auf „keine Etage" zu setzen. `ort()` antwortet wie bisher mit
+`etage: string` — dem Namen der Etage.
+
+**Hausstrecken haben Endblenden und Adern** (Issue #15). Die Sicht
+„Hausstrecken" trägt zu jeder Strecke die Blende, an der sie im Von- und im
+Nach-Raum endet („B2", „Wandfeld 3.OG-West"), und ihre Adern mit Bezeichnung,
+Stecker und Signal — alles Freitext, weil die Technik schneller wechselt als
+das Haus. Eine Zuordnung darf eine Ader nennen (`ader`); ohne sie gilt sie wie
+bisher der ganzen Strecke. Die **Belegung je Ader wird abgeleitet**, nicht
+eingetragen: `frei`, `belegt` (mit den Plan-Kabeln) oder `unbekannt`, wenn ein
+Plan-Kabel die Strecke benutzt, ohne eine Ader zu nennen — dann ist keine Ader
+sicher frei. Zwei Plan-Kabel auf derselben Ader sind ein Konflikt, eine
+Zuordnung auf eine Ader, die die Strecke nicht führt, wird gemeldet und nicht
+verworfen. Wer eine Ader umbenennt, nimmt die Zuordnungen auf sie mit.
+
+**Das Dateiformat ist `avplan-facility` v2.** Geschrieben wird v2, gelesen
+werden v1 und v2. Neu in v2:
+
+```
+gebaeude.etagen: { id, name, hoeheM? }[]
+gebaeude.raeume[].etageId?
+gebaeude.strecken[].vonBlende?, .nachBlende?, .adern?: { nr, stecker?, signal? }[]
+gebaeude.zuordnungen[].ader?
+```
+
+Eine v1-Datei wird beim Lesen geheilt: aus jedem unterschiedlichen Freitext
+`raeume[].etage` (ohne Rand-Leerzeichen) wird eine Etage mit der Id
+`etage:<Name>`, der Raum verweist per `etageId` darauf, und das Freitextfeld
+fällt weg. Die Id hängt nur am Namen, damit dieselbe Datei überall dieselben
+Etagen ergibt; die Reihenfolge ist die des ersten Auftretens und lässt sich
+danach verschieben. Mehr wird nicht zusammengelegt — „EG" und „eg" bleiben
+zwei Etagen, bis der Betreiber sie zusammenführt.
 
 Der eine Rückweg ist `mangelMelden(hausObjektId, befund)`. Eine Show ändert das
 Haus nicht, sie benutzt es; die Ausnahme ist die Aussage eines Menschen über
@@ -141,8 +180,9 @@ Downloads.
 ## Stand
 
 Das Modell (Raum, Anschlusspunkt, Stromkreis, Verteilung, Steuerklinke,
-Hausstrecke, Mangel, dazu Trasse, Schaltstelle und Grundriss aus Issue #1),
-der Vertrag als reine Funktionen, ein Speicher und sieben Sichten darüber.
+Hausstrecke, Mangel, dazu Trasse, Schaltstelle und Grundriss aus Issue #1,
+Etage aus cable-planner#911, Ader und Endblende aus Issue #15), der Vertrag
+als reine Funktionen, ein Speicher und neun Sichten darüber.
 
 **Der Grundriss liegt als Verweis vor, nicht als Bild.** Das Dokument trägt
 die Adresse und den Massstab (`meterProBild`), und die Lage eines Punktes

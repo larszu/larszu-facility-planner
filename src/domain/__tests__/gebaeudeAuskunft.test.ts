@@ -3,6 +3,8 @@ import {
   adresseMehrdeutig,
   geschaltetVon,
   punkteMitLage,
+  raeumeNachEtage,
+  streckenBelegung,
   trassenZwischen,
   wegFrei,
 } from '../gebaeudeAuskunft'
@@ -201,5 +203,134 @@ describe('Mehrdeutige Steuer-Adressen', () => {
     for (const system of ['knx', 'crestron', 'vissonic', 'sonstige'] as const) {
       expect(adresseMehrdeutig(klinke({ id: `k-${system}`, system }))).toBe(false)
     }
+  })
+})
+
+describe('Räume nach Etage (cable-planner#911)', () => {
+  it('folgt der Reihenfolge der Etagen-Liste, nicht der Höhe und nicht dem Namen', () => {
+    const g = haus({
+      etagen: [
+        { id: 'e-og', name: 'OG', hoeheM: 4 },
+        { id: 'e-eg', name: 'EG', hoeheM: 0 },
+      ],
+      raeume: [
+        { id: 'r-a', name: 'A', etageId: 'e-eg', hausbezeichner: 'A' },
+        { id: 'r-b', name: 'B', etageId: 'e-og', hausbezeichner: 'B' },
+        { id: 'r-c', name: 'C', etageId: 'e-eg', hausbezeichner: 'C' },
+      ],
+    })
+    expect(raeumeNachEtage(g).map((r) => r.id)).toEqual(['r-b', 'r-a', 'r-c'])
+  })
+
+  it('Räume ohne Etage — und mit einer, die es nicht gibt — stehen hinten', () => {
+    // Vorne sähen sie aus wie das Untergeschoss.
+    const g = haus({
+      etagen: [{ id: 'e-eg', name: 'EG' }],
+      raeume: [
+        { id: 'r-ohne', name: 'Ohne', hausbezeichner: 'O' },
+        { id: 'r-weg', name: 'Weg', etageId: 'e-weg', hausbezeichner: 'W' },
+        { id: 'r-eg', name: 'EG', etageId: 'e-eg', hausbezeichner: 'E' },
+      ],
+    })
+    expect(raeumeNachEtage(g).map((r) => r.id)).toEqual(['r-eg', 'r-ohne', 'r-weg'])
+  })
+})
+
+describe('Aderbelegung einer Hausstrecke (Issue #15)', () => {
+  const mitStrecke = (teil: Partial<Gebaeude> = {}): Gebaeude =>
+    haus({
+      strecken: [
+        {
+          id: 's1',
+          bezeichnung: 'Tie-Line',
+          vonRaumId: 'r-saal',
+          nachRaumId: 'r-regie',
+          adern: [{ nr: '1', stecker: 'BNC' }, { nr: '2' }, { nr: '3' }],
+        },
+        { id: 's2', bezeichnung: 'Andere', vonRaumId: 'r-saal', nachRaumId: 'r-regie' },
+      ],
+      ...teil,
+    })
+
+  it('ohne Zuordnung ist jede Ader frei', () => {
+    const b = streckenBelegung(mitStrecke(), 's1')!
+    expect(b.adern.map((a) => a.zustand)).toEqual(['frei', 'frei', 'frei'])
+    expect(b.adern[0]!.ader.stecker).toBe('BNC')
+  })
+
+  it('eine Zuordnung mit Ader belegt genau diese — und nennt das Plan-Kabel', () => {
+    const b = streckenBelegung(
+      mitStrecke({ zuordnungen: [{ planKabelId: 'kabel-7', hausStreckeId: 's1', ader: '2' }] }),
+      's1',
+    )!
+    expect(b.adern.map((a) => a.zustand)).toEqual(['frei', 'belegt', 'frei'])
+    expect(b.adern[1]!.planKabelIds).toEqual(['kabel-7'])
+    expect(b.adern[1]!.konflikt).toBe(false)
+  })
+
+  it('zwei Plan-Kabel auf derselben Ader sind ein Konflikt', () => {
+    const b = streckenBelegung(
+      mitStrecke({
+        zuordnungen: [
+          { planKabelId: 'kabel-7', hausStreckeId: 's1', ader: '3' },
+          { planKabelId: 'kabel-8', hausStreckeId: 's1', ader: '3' },
+        ],
+      }),
+      's1',
+    )!
+    expect(b.adern[2]).toMatchObject({ zustand: 'belegt', planKabelIds: ['kabel-7', 'kabel-8'], konflikt: true })
+  })
+
+  it('eine Ader, die die Strecke nicht führt, wird gemeldet und nicht verworfen', () => {
+    const b = streckenBelegung(
+      mitStrecke({ zuordnungen: [{ planKabelId: 'kabel-9', hausStreckeId: 's1', ader: '12' }] }),
+      's1',
+    )!
+    expect(b.unbekannteAdern).toEqual([{ planKabelId: 'kabel-9', ader: '12' }])
+    expect(b.adern.every((a) => a.zustand === 'frei')).toBe(true)
+  })
+
+  it('eine Zuordnung OHNE Ader macht die Adern unbekannt, nicht frei', () => {
+    // Der Fall aus v1: „das Kabel liegt auf der Strecke". Welche Ader, sagt
+    // niemand — „alle frei" wäre für eine davon falsch.
+    const b = streckenBelegung(
+      mitStrecke({
+        zuordnungen: [
+          { planKabelId: 'kabel-alt', hausStreckeId: 's1' },
+          { planKabelId: 'kabel-7', hausStreckeId: 's1', ader: '1' },
+        ],
+      }),
+      's1',
+    )!
+    expect(b.ganzeStrecke).toEqual(['kabel-alt'])
+    expect(b.adern.map((a) => a.zustand)).toEqual(['belegt', 'unbekannt', 'unbekannt'])
+  })
+
+  it('Zuordnungen anderer Strecken zählen nicht mit', () => {
+    const b = streckenBelegung(
+      mitStrecke({ zuordnungen: [{ planKabelId: 'kabel-7', hausStreckeId: 's2', ader: '1' }] }),
+      's1',
+    )!
+    expect(b.adern[0]!.zustand).toBe('frei')
+    expect(b.unbekannteAdern).toEqual([])
+  })
+
+  it('eine Strecke ohne beschriebene Adern meldet jede genannte Ader als unbekannt', () => {
+    const b = streckenBelegung(
+      mitStrecke({ zuordnungen: [{ planKabelId: 'kabel-7', hausStreckeId: 's2', ader: '1' }] }),
+      's2',
+    )!
+    expect(b.adern).toEqual([])
+    expect(b.unbekannteAdern).toEqual([{ planKabelId: 'kabel-7', ader: '1' }])
+  })
+
+  it('eine doppelt vergebene Aderbezeichnung wird gemeldet', () => {
+    const g = mitStrecke()
+    g.strecken[0]!.adern = [{ nr: '1' }, { nr: '1' }, { nr: '2' }]
+    expect(streckenBelegung(g, 's1')!.doppelteNr).toEqual(['1'])
+  })
+
+  it('eine unbekannte Strecke ergibt keine Belegung, statt einer leeren', () => {
+    expect(streckenBelegung(mitStrecke(), 's-weg')).toBeUndefined()
   })
 })

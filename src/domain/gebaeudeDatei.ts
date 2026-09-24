@@ -18,10 +18,11 @@
 //
 // ─── WAS DRINSTEHT UND WAS NICHT ───────────────────────────────────────────
 //
-// Drin steht das ganze `Gebaeude` — Punkte, Kreise, Verteilungen, Räume,
-// Schaltstellen, Klinken, Trassen, Strecken, Mängel. Es ist die Auskunft des
-// Hauses über sich selbst, und wer sie abschneidet, entscheidet an dieser
-// Stelle, welche Frage der Plan später nicht mehr stellen darf.
+// Drin steht das ganze `Gebaeude` — Etagen, Räume, Punkte, Kreise,
+// Verteilungen, Schaltstellen, Klinken, Trassen, Strecken samt Adern, Mängel.
+// Es ist die Auskunft des Hauses über sich selbst, und wer sie abschneidet,
+// entscheidet an dieser Stelle, welche Frage der Plan später nicht mehr
+// stellen darf.
 //
 // NICHT drin steht ein Grundriss-BILD. `Raum.grundriss` trägt einen
 // Dateinamen und einen Maßstab, nicht die Pixel: ein eingebettetes Bild
@@ -43,14 +44,24 @@ import { heileGebaeude, leeresGebaeude, type Gebaeude } from './modell'
 export const FACILITY_FORMAT = 'avplan-facility'
 
 /**
- * Version 1 — der erste Stand.
+ * Version 2 (2026-09-24): Etagen als Objekte (`gebaeude.etagen`,
+ * `raeume[].etageId` statt Freitext `etage`, cable-planner#911), Hausstrecken
+ * mit Endblenden und Adern (`vonBlende`, `nachBlende`, `adern`) und die Ader
+ * an der Zuordnung (`zuordnungen[].ader`, Issue #15).
+ *
+ * EIN Sprung fuer beide Aenderungen: der `cable-planner` liest diese Datei
+ * und muss jede Version einzeln kennen. Zwei Spruenge am selben Tag waeren
+ * zwei Leser-Staende, von denen einer nie eine echte Datei sieht.
  *
  * Was eine Version hier wirklich leistet, ist dasselbe wie beim Lager: sie
  * weist eine ZU NEUE Datei ab, statt sie halb zu lesen. Die andere Richtung
- * (eine ältere Datei, der ein Feld fehlt) deckt sie nicht ab — dafür ist die
- * Heilung da, und die füllt nichts auf, was fehlen darf.
+ * (eine ältere Datei) deckt sie nicht ab — dafür ist die Heilung da:
+ * `heileGebaeude` macht aus einer v1-Datei eine v2-Datei, Freitext-Etagen
+ * eingeschlossen, und füllt nichts auf, was fehlen darf. Umgeschrieben wird
+ * dabei nur die Etage; alle anderen neuen Felder sind optional und fehlen in
+ * einer v1-Datei einfach.
  */
-export const FACILITY_FORMAT_VERSION = 1
+export const FACILITY_FORMAT_VERSION = 2
 
 interface FacilityDatei {
   format: typeof FACILITY_FORMAT

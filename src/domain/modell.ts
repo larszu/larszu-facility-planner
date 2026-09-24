@@ -246,11 +246,39 @@ export interface Grundriss {
   meterProBild: number
 }
 
+/**
+ * Eine Etage des Gebaeudes (cable-planner#911).
+ *
+ * ─── WARUM EIN OBJEKT UND KEIN FREITEXT MEHR ──────────────────────────────
+ *
+ * Bis 2026-09-24 stand am Raum `etage?: string`. Jeder Tippfehler war damit
+ * eine neue Etage: „1.OG", „1. OG" und „OG1" sind drei Stockwerke fuer jeden,
+ * der die Raeume danach gruppiert — und keine Sicht las das Feld, also fiel
+ * es niemandem auf. Als Objekt gibt es jede Etage einmal, und der Raum
+ * VERWEIST darauf.
+ *
+ * DIE REIHENFOLGE IST DIE DER LISTE (`Gebaeude.etagen`). Ein eigenes
+ * Rangfeld waere die zweite Wahrheit neben der Listenposition, und die beiden
+ * liefen beim ersten Verschieben auseinander. Auch `hoeheM` ist keine
+ * Reihenfolge: sie fehlt oft, und eine Etage ohne Hoehe liesse sich dann
+ * nirgends einsortieren.
+ */
+export interface Etage {
+  id: string
+  name: string
+  /**
+   * Hoehe der Fertigfussboden-Oberkante in Metern ueber dem Bezug des Hauses.
+   * Fehlt sie, fehlt sie — `0` waere die Aussage „liegt auf Bezugshoehe".
+   */
+  hoeheM?: number
+}
+
 /** Ein Raum des Gebaeudes, mit dem Bezeichner DES HAUSES. */
 export interface Raum {
   id: string
   name: string
-  etage?: string
+  /** Die Etage — verweist auf `Etage.id`. Fehlt sie, ist sie nicht angegeben. */
+  etageId?: string
   grundriss?: Grundriss
   /**
    * Der Bezeichner, unter dem das Haus diesen Raum fuehrt (TIA-606, hauseigenes
@@ -334,12 +362,44 @@ export interface Trasse {
   hinweis?: string
 }
 
+/**
+ * Eine Ader (ein Port) einer Hausstrecke (Issue #15).
+ *
+ * ALLES FREITEXT, mit Absicht. Eine Tie-Line fuehrt „SDI 3", eine
+ * Glasfaser „Faser 7/8", ein Datenkabel „Port 12" — und Stecker wie Signal
+ * wandern mit der Technik („12G-SDI", „ST 2110", „SMF OS2"). Eine
+ * geschlossene Liste waere hier die Liste von heute, und das Haus steht
+ * laenger als sie.
+ */
+export interface StreckenAder {
+  /** Bezeichnung der Ader am Haus („1", „SDI 3"). Eindeutig je Strecke. */
+  nr: string
+  /** Steckgesicht an der Blende („BNC", „LC-Duplex", „RJ45"). */
+  stecker?: string
+  /** Was die Ader fuehrt („12G-SDI", „Dante", „SMF"). */
+  signal?: string
+}
+
 /** Eine fest verlegte Strecke des Hauses (Tie-Line, Leerrohr, Steigleitung). */
 export interface HausStrecke {
   id: string
   bezeichnung: string
   vonRaumId: string
   nachRaumId: string
+  /**
+   * Die Blende (Anschlussfeld, Wandfeld), an der die Strecke im VON-Raum
+   * endet — Bezeichner des Hauses („B2", „Wandfeld 3.OG-West"). Der Raum
+   * allein sagt im Aufbau nicht, an welcher Wand man stecken muss.
+   */
+  vonBlende?: string
+  /** Dasselbe am NACH-Ende. */
+  nachBlende?: string
+  /**
+   * Die Adern der Strecke. FEHLT die Liste, hat niemand sie beschrieben —
+   * das ist nicht dasselbe wie eine Strecke ohne Adern, und deshalb wird sie
+   * beim Heilen auch nicht zu `[]` aufgefuellt.
+   */
+  adern?: StreckenAder[]
 }
 
 /**
@@ -353,6 +413,11 @@ export interface HausStrecke {
 export interface Zuordnung {
   planKabelId: string
   hausStreckeId: string
+  /**
+   * Die Ader (`StreckenAder.nr`), die das Plan-Kabel benutzt (Issue #15).
+   * Fehlt sie, gilt die Zuordnung der GANZEN Strecke, wie vor v2.
+   */
+  ader?: string
   /** Wer die Zuordnung erklaert hat — der Beleg, nicht die Zierde. */
   erklaertVon?: string
 }
@@ -379,6 +444,8 @@ export interface Mangel {
 export interface Gebaeude {
   id: string
   name: string
+  /** Die Etagen; ihre Reihenfolge ist die dieser Liste (cable-planner#911). */
+  etagen: Etage[]
   raeume: Raum[]
   punkte: Anschlusspunkt[]
   stromkreise: Stromkreis[]
@@ -398,6 +465,7 @@ export interface Gebaeude {
 export const leeresGebaeude = (id: string, name: string): Gebaeude => ({
   id,
   name,
+  etagen: [],
   raeume: [],
   punkte: [],
   stromkreise: [],
@@ -409,6 +477,71 @@ export const leeresGebaeude = (id: string, name: string): Gebaeude => ({
   zuordnungen: [],
   maengel: [],
 })
+
+/** Ein Raum, wie ihn `avplan-facility` v1 schrieb: die Etage als Freitext. */
+type RaumMitFreitext = Raum & { etage?: unknown }
+
+/**
+ * Die Id einer aus Freitext gewonnenen Etage — aus dem NAMEN abgeleitet.
+ *
+ * NICHT ZUFAELLIG, weil dieselbe v1-Datei an mehr als einer Stelle geheilt
+ * wird: beim Laden hier, beim Einlesen einer Datei, in der Suite. Mit einer
+ * Zufalls-Id bekaeme dieselbe Etage bei jedem Heilen eine andere, und wer
+ * zwei geheilte Fassungen nebeneinanderlegt, saehe zwei Gebaeude. Belegt eine
+ * vorhandene Etage die Id schon, wird hochgezaehlt — auch das haengt nur an
+ * der Eingabe.
+ */
+const etagenIdAusName = (name: string, belegt: ReadonlySet<string>): string => {
+  const basis = `etage:${name}`
+  if (!belegt.has(basis)) return basis
+  let n = 2
+  while (belegt.has(`${basis}:${n}`)) n += 1
+  return `${basis}:${n}`
+}
+
+/**
+ * Freitext-Etagen (v1) in Etagen-Objekte ueberfuehren.
+ *
+ * Gleicher Text (ohne Rand-Leerzeichen) ist dieselbe Etage, und eine schon
+ * vorhandene Etage GLEICHEN Namens wird wiederverwendet statt verdoppelt.
+ * Mehr wird nicht zusammengelegt: „EG" und „eg" koennen zwei Schreibweisen
+ * sein oder zwei Gebaeudeteile, und das entscheidet hier niemand fuer den
+ * Betreiber. Er sieht beide in der Liste und legt sie selbst zusammen.
+ *
+ * Hat ein Raum schon eine `etageId`, gewinnt sie: sie ist die neuere Angabe.
+ * Das Freitextfeld faellt in JEDEM Fall weg — stuende es neben `etageId`
+ * weiter, gaebe es die Etage zweimal, und die zweite Fassung liefe beim
+ * naechsten Umbenennen weg.
+ *
+ * Die Reihenfolge neuer Etagen ist die ihres ersten Auftretens. Eine
+ * richtigere gibt es aus Freitext nicht; sie steht als Liste da und laesst
+ * sich verschieben.
+ *
+ * Idempotent: ein geheiltes Gebaeude hat kein `etage` mehr, und ein Raum
+ * ohne das Feld kommt als DASSELBE Objekt zurueck.
+ */
+const etagenAusFreitext = (
+  etagen: Etage[],
+  raeume: Raum[],
+): { etagen: Etage[]; raeume: Raum[] } => {
+  if (!raeume.some((r) => 'etage' in r)) return { etagen, raeume }
+  const alle = [...etagen]
+  const belegt = new Set(alle.map((e) => e.id))
+  const neueRaeume = raeume.map((r): Raum => {
+    if (!('etage' in r)) return r
+    const { etage, ...rest } = r as RaumMitFreitext
+    const name = typeof etage === 'string' ? etage.trim() : ''
+    if (rest.etageId !== undefined || name === '') return rest
+    let ziel = alle.find((e) => e.name === name)
+    if (!ziel) {
+      ziel = { id: etagenIdAusName(name, belegt), name }
+      alle.push(ziel)
+      belegt.add(ziel.id)
+    }
+    return { ...rest, etageId: ziel.id }
+  })
+  return { etagen: alle, raeume: neueRaeume }
+}
 
 /**
  * Ein geladenes Gebaeude auf den heutigen Stand bringen.
@@ -422,18 +555,23 @@ export const leeresGebaeude = (id: string, name: string): Gebaeude => ({
  * nicht beim Laden, sondern irgendwo in einer Sicht.
  *
  * Dieselbe Rolle wie `healProjectPositions` im `cable-planner`: EINE Stelle,
- * an der ein altes Dokument zum aktuellen Schema wird.
+ * an der ein altes Dokument zum aktuellen Schema wird — seit
+ * `avplan-facility` v2 auch die Freitext-Etage (`etagenAusFreitext`).
  */
-export const heileGebaeude = (g: Gebaeude): Gebaeude => ({
-  ...g,
-  raeume: g.raeume ?? [],
-  punkte: g.punkte ?? [],
-  stromkreise: g.stromkreise ?? [],
-  verteilungen: g.verteilungen ?? [],
-  klinken: g.klinken ?? [],
-  strecken: g.strecken ?? [],
-  trassen: g.trassen ?? [],
-  schaltstellen: g.schaltstellen ?? [],
-  zuordnungen: g.zuordnungen ?? [],
-  maengel: g.maengel ?? [],
-})
+export const heileGebaeude = (g: Gebaeude): Gebaeude => {
+  const { etagen, raeume } = etagenAusFreitext(g.etagen ?? [], g.raeume ?? [])
+  return {
+    ...g,
+    etagen,
+    raeume,
+    punkte: g.punkte ?? [],
+    stromkreise: g.stromkreise ?? [],
+    verteilungen: g.verteilungen ?? [],
+    klinken: g.klinken ?? [],
+    strecken: g.strecken ?? [],
+    trassen: g.trassen ?? [],
+    schaltstellen: g.schaltstellen ?? [],
+    zuordnungen: g.zuordnungen ?? [],
+    maengel: g.maengel ?? [],
+  }
+}
