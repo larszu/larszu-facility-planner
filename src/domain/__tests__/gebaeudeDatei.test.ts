@@ -281,3 +281,14 @@ describe('Freitext-Etagen neben schon vorhandenen Etagen', () => {
     expect(g.etagen.find((e) => e.id === 'etage:UG:2')!.name).toBe('UG')
   })
 })
+
+describe('beschaedigte Raum-Eintraege', () => {
+  it('ein null-Raum bringt die Etagen-Migration nicht zum Absturz', () => {
+    const roh = {
+      ...leeresGebaeude('g', 'Halle'),
+      raeume: [null, { id: 'r1', name: 'Saal', hausbezeichner: 'S', etage: 'EG' }],
+    } as unknown as Gebaeude
+    const g = heileGebaeude(roh)
+    expect(g.etagen.map((e) => e.name)).toEqual(['EG'])
+  })
+})

@@ -524,11 +524,15 @@ const etagenAusFreitext = (
   etagen: Etage[],
   raeume: Raum[],
 ): { etagen: Etage[]; raeume: Raum[] } => {
-  if (!raeume.some((r) => 'etage' in r)) return { etagen, raeume }
+  // Ein beschaedigter Eintrag (null, Zahl) ist kein Raum mit Freitext-Etage;
+  // `in` auf ihm wuerfe, und das Laden fiele dann auf ein LEERES Gebaeude
+  // zurueck, das die naechste Aenderung ueber die Ablage schriebe.
+  const mitFreitext = (r: unknown): boolean => !!r && typeof r === 'object' && 'etage' in r
+  if (!raeume.some(mitFreitext)) return { etagen, raeume }
   const alle = [...etagen]
   const belegt = new Set(alle.map((e) => e.id))
   const neueRaeume = raeume.map((r): Raum => {
-    if (!('etage' in r)) return r
+    if (!mitFreitext(r)) return r
     const { etage, ...rest } = r as RaumMitFreitext
     const name = typeof etage === 'string' ? etage.trim() : ''
     if (rest.etageId !== undefined || name === '') return rest

@@ -362,7 +362,7 @@ export const hausStrecke = (
   const strecke = gebaeude.strecken.find((s) => s.id === z.hausStreckeId)
   if (!strecke) return undefined
   // Ohne Ader bleibt die Antwort genau die von v1 — die ganze Strecke.
-  return z.ader === undefined || z.ader.trim() === '' ? strecke : { ...strecke, ader: z.ader }
+  return typeof z.ader !== 'string' || z.ader.trim() === '' ? strecke : { ...strecke, ader: z.ader }
 }
 
 // ─── Der eine Rueckweg ──────────────────────────────────────────────────────

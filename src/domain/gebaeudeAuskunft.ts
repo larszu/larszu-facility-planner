@@ -212,7 +212,7 @@ export const streckenBelegung = (
   for (const z of gebaeude.zuordnungen) {
     if (z.hausStreckeId !== streckeId) continue
     // Ein leerer Text nennt keine Ader — derselbe Schluss wie in `hausStrecke()`.
-    if (z.ader === undefined || z.ader.trim() === '') {
+    if (typeof z.ader !== 'string' || z.ader.trim() === '') {
       ganzeStrecke.push(z.planKabelId)
     } else if (nrs.has(z.ader)) {
       aufAder.set(z.ader, [...(aufAder.get(z.ader) ?? []), z.planKabelId])

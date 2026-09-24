@@ -56,6 +56,10 @@ export function Raeume() {
   const [abgelehnt, setAbgelehnt] = useState<string | undefined>()
 
   const etagen = gebaeude.etagen
+  // Die im Formular gewaehlte Etage kann inzwischen entfernt sein (entfernen
+  // darf man eine Etage, solange kein Raum darauf steht). Dann gilt sie nicht
+  // mehr — sonst bekaeme der naechste Raum einen Verweis ins Leere.
+  const gewaehlteEtage = etagen.some((e) => e.id === raumEtage) ? raumEtage : ''
   const raeume = raeumeNachEtage(gebaeude)
   const hoehe = hoeheAusEingabe(etagenHoehe)
   const etageAnlegbar = etagenName.trim() !== '' && hoehe !== null
@@ -194,7 +198,7 @@ export function Raeume() {
           raumAnlegen({
             name,
             hausbezeichner: raumBezeichner.trim() || name,
-            ...(raumEtage ? { etageId: raumEtage } : {}),
+            ...(gewaehlteEtage ? { etageId: gewaehlteEtage } : {}),
           })
           setRaumName('')
           setRaumBezeichner('')
@@ -215,7 +219,7 @@ export function Raeume() {
           />
         </Feld>
         <Feld name={t('rooms.floor', 'Floor')}>
-          <select value={raumEtage} onChange={(e) => setRaumEtage(e.target.value)}>
+          <select value={gewaehlteEtage} onChange={(e) => setRaumEtage(e.target.value)}>
             <option value="">{t('common.notStated', 'not stated')}</option>
             {etagen.map((e) => (
               <option key={e.id} value={e.id}>
