@@ -164,13 +164,49 @@ export const fallbackMuster = () =>
  * einem Wort — und in TypeScript ist es genau die Form einer
  * Typ-Anwendung. Siehe `ohneGenerics`.
  *
+ * DIE DRITTE: der gewoehnliche Vergleich (gefunden 2026-09-18 im
+ * `inventory-planner` beim Bau der Ladeplanung, hier 2026-09-25 mitgezogen —
+ * `lang:parity` der Suite hat die zwei Kopien auseinanderlaufen sehen).
+ * `=>` und `>=` auszunehmen reicht nicht — der GEWOEHNLICHE Vergleich endet
+ * auf nichts davon:
+ *
+ *     const ein = p.position.y > 0 ? LAGEN_VERSATZ : 0
+ *     const farbe = gruppenFarbe(p.gruppe, gruppen)
+ *     return (
+ *       <g
+ *
+ * Zwischen dem `>` und dem `<` von `<g` steht keine Klammer, also greift das
+ * Muster ueber drei Zeilen Code — und der Klassifizierer sieht „Farbe" und
+ * „Gruppe" und meldet eine deutsche Beschriftung. Eine einwandfreie Zeile,
+ * die so gemeldet wird, kostet den Waechter sein Ansehen.
+ *
+ * Die Bedingung ist deshalb jetzt POSITIV: vor einem Tag-Ende steht ein
+ * Anfuehrungszeichen, ein Wortzeichen, ein `/`, `]` oder `}` — `<p>`,
+ * `className="x">`, `<br/>`, `{...rest}>`. Vor einem Vergleich steht ein
+ * LEERZEICHEN, und das ist keines davon.
+ *
+ * Was das kostet: einen Textknoten direkt hinter einem mehrzeilig
+ * geschriebenen Tag, dessen `>` allein auf einer Zeile steht.
+ *
+ * GEMESSEN am 2026-09-25 ueber dieses Repo, vorher gegen nachher:
+ *
+ *     englisch        114  ->  114     unveraendert
+ *     deutsch           0  ->    0
+ *     ohne Merkmal    934  ->  897     37 Code-Schnipsel weniger
+ *
+ * Die 37, die wegfallen, trugen alle KEIN Sprachmerkmal — es waren
+ * Code-Stuecke, die das weite Muster mitgelesen hat (im Lager waren es
+ * zufaellig ebenso viele, dort mit einem Fehlalarm darunter). Die Zahl der
+ * wirklich erkannten Beschriftungen bleibt gleich; verloren geht nur
+ * Rauschen.
+ *
  * NUR AUF `.tsx`. In gewoehnlichem TypeScript sind `>` und `<` Vergleiche und
  * Generics, und dazwischen steht Code. Die erste Fassung las auch `.ts` und
  * meldete prompt eine Store-Zeile („for (const it of current) if …") als
  * englischen Fallback. Ein Waechter, der bei richtigem Code anschlaegt, wird
  * abgeschaltet und nicht gelesen.
  */
-export const jsxTextMuster = () => /(?<!=)>(?!=)([^<>{}]{4,300})</g;
+export const jsxTextMuster = () => /(?<=["'\w/\]}])>(?!=)([^<>{}]{4,300})</g;
 
 /**
  * Typ-Anwendungen entfernen: `Record<Bauform, string>`, `useState<Thema>`.
@@ -307,6 +343,23 @@ assert.equal(ohneGenerics("useState<Belegung>('unbekannt')"), " ('unbekannt')");
 // zweite `Termin<em>`.
 assert.equal(ohneGenerics('<p>Kein Termin vereinbart</p>'), '<p>Kein Termin vereinbart</p>');
 assert.equal(ohneGenerics('<p>Kein Termin<em>heute</em></p>'), '<p>Kein Termin<em>heute</em></p>');
+// Und die Gegenprobe zum Vergleichs-Operator (2026-09-18). Die erste Fassung
+// las hier drei Zeilen Code als Beschriftung und meldete sie als deutsch.
+assert.equal(
+  [...'const ein = p.position.y > 0 ? VERSATZ : 0\nconst farbe = f(p.gruppe)\nreturn (\n  <g'.matchAll(
+    jsxTextMuster(),
+  )].length,
+  0,
+);
+// Die vier Schreibweisen eines echten Tag-Endes bleiben erkannt.
+for (const zeile of [
+  '<p>Kein Termin vereinbart</p>',
+  '<p className="x">Kein Termin vereinbart</p>',
+  '<p {...rest}>Kein Termin vereinbart</p>',
+  '<p data-x={1} title="a">Kein Termin vereinbart</p>',
+]) {
+  assert.equal([...zeile.matchAll(jsxTextMuster())].length > 0, true, zeile);
+}
 assert.equal(
   klassifiziere([...ohneGenerics('<p>Kein Termin vereinbart</p>').matchAll(jsxTextMuster())][0][1]),
   'de',
