@@ -26,6 +26,7 @@ import { TabelleRahmen } from './TabelleRahmen'
 import { Anlegen, Feld } from './Formular'
 import { useGebaeudeStore } from '../domain/store/gebaeudeStore'
 import { raeumeNachEtage } from '../domain/gebaeudeAuskunft'
+import { istRaumLage, type Raum, type RaumLage } from '../domain/modell'
 
 /**
  * Eine Höhe aus dem Eingabefeld. Leer ist „nicht angegeben" und nicht 0 —
@@ -36,6 +37,65 @@ const hoeheAusEingabe = (roh: string): number | undefined | null => {
   if (roh.trim() === '') return undefined
   const n = Number(roh)
   return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Die Lage eines Raums im Haus: vier Zahlen, zusammen oder gar nicht.
+ *
+ * Ein Entwurf haelt die Eingabe, bis sie vollstaendig ist — sonst muesste die
+ * erste getippte Zahl die drei anderen mit etwas auffuellen, und das waere
+ * eine erfundene Lage. Alle vier leer loescht die Lage.
+ */
+function LageFelder({ raum, onSetzen }: { raum: Raum; onSetzen: (lage: RaumLage | undefined) => void }) {
+  const { t, format } = useT()
+  const aus = (l: RaumLage | undefined) =>
+    l ? [String(l.xM), String(l.yM), String(l.breiteM), String(l.tiefeM)] : ['', '', '', '']
+  const [entwurf, setEntwurf] = useState<string[]>(() => aus(raum.lage))
+  const [gesehen, setGesehen] = useState(raum.lage)
+  // Aendert sich die Lage von aussen (Datei geladen), gilt die neue.
+  if (gesehen !== raum.lage) {
+    setGesehen(raum.lage)
+    setEntwurf(aus(raum.lage))
+  }
+  const uebernehmen = (felder: string[]) => {
+    if (felder.every((f) => f.trim() === '')) {
+      if (raum.lage) onSetzen(undefined)
+      return
+    }
+    const [xM, yM, breiteM, tiefeM] = felder.map((f) => Number(f.replace(',', '.')))
+    const lage = { xM, yM, breiteM, tiefeM }
+    if (felder.every((f) => f.trim() !== '') && istRaumLage(lage)) onSetzen(lage)
+  }
+  const namen = [
+    t('rooms.position.x', 'x'),
+    t('rooms.position.y', 'y'),
+    t('rooms.position.width', 'width'),
+    t('rooms.position.depth', 'depth'),
+  ]
+  const offen = entwurf.some((f) => f.trim() !== '') && !istRaumLage({
+    xM: Number(entwurf[0].replace(',', '.')),
+    yM: Number(entwurf[1].replace(',', '.')),
+    breiteM: Number(entwurf[2].replace(',', '.')),
+    tiefeM: Number(entwurf[3].replace(',', '.')),
+  })
+  return (
+    <div className="lage-felder">
+      {entwurf.map((wert, i) => (
+        <input
+          key={i}
+          type="number"
+          step={0.1}
+          value={wert}
+          placeholder={namen[i]}
+          onChange={(e) => setEntwurf(entwurf.map((w, j) => (j === i ? e.target.value : w)))}
+          onBlur={() => uebernehmen(entwurf)}
+          aria-label={format(t('rooms.position.aria', '{field} of {name} in metres'), { field: namen[i], name: raum.name })}
+          className="schmal-zahl"
+        />
+      ))}
+      {offen && <span className="hinweis">{t('rooms.position.incomplete', 'incomplete')}</span>}
+    </div>
+  )
 }
 
 export function Raeume() {
@@ -250,6 +310,9 @@ export function Raeume() {
                 <th>{t('common.name', 'Name')}</th>
                 <th>{t('rooms.houseId', 'House identifier')}</th>
                 <th>{t('rooms.floor', 'Floor')}</th>
+                <th title={t('rooms.position.title', 'Where the room lies in the building, in metres from its reference point: x, y, width, depth. The Building view places the room there.')}>
+                  {t('rooms.position', 'Position in the building (m)')}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -294,6 +357,9 @@ export function Raeume() {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td>
+                      <LageFelder raum={r} onSetzen={(lage) => raumAendern(r.id, { lage })} />
                     </td>
                   </tr>
                 )

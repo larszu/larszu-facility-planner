@@ -75,6 +75,16 @@ Räume stehen, lässt sich nicht entfernen: die Ablehnung nennt die Räume, stat
 sie still auf „keine Etage" zu setzen. `ort()` antwortet wie bisher mit
 `etage: string` — dem Namen der Etage.
 
+**Die Sicht „Gebäude" zeigt das Haus als Bild** (QW12): Etagen
+übereinander, jeder Raum als Körper auf seiner Etage, Hausstrecken (mit freien
+Adern, z. B. „HS-01 · 4/8 frei") und Trassen von Decke zu Decke. Gedreht wird in
+Vierteln, Etagen und einzelne Räume lassen sich ausblenden. Wo ein Raum liegt,
+steht unter „Räume" als **Lage im Haus** — x, y, Breite und Tiefe in Metern vom
+Bezugspunkt, alle vier oder keine. Ein Raum ohne Lage wird auf seiner Etage
+eingereiht und gestrichelt gezeichnet, eine Etage ohne Höhe mit der
+Geschosshöhe gestapelt; die Sicht sagt beides. Gezeichnet wird isometrisch in
+SVG, ohne 3D-Bibliothek.
+
 **Hausstrecken haben Endblenden und Adern** (Issue #15). Die Sicht
 „Hausstrecken" trägt zu jeder Strecke die Blende, an der sie im Von- und im
 Nach-Raum endet („B2", „Wandfeld 3.OG-West"), und ihre Adern mit Bezeichnung,
@@ -93,6 +103,7 @@ werden v1 und v2. Neu in v2:
 ```
 gebaeude.etagen: { id, name, hoeheM? }[]
 gebaeude.raeume[].etageId?
+gebaeude.raeume[].lage?: { xM, yM, breiteM, tiefeM }   (optional, ohne Versionssprung)
 gebaeude.strecken[].vonBlende?, .nachBlende?, .adern?: { nr, stecker?, signal? }[]
 gebaeude.zuordnungen[].ader?
 ```

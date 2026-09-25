@@ -45,11 +45,13 @@ import { Schaltstellen } from './Schaltstellen'
 import { Maengel } from './Maengel'
 import { Raeume } from './Raeume'
 import { Strecken } from './Strecken'
+import { GebaeudeAnsicht } from './GebaeudeAnsicht'
 import { useGebaeudeStore } from '../domain/store/gebaeudeStore'
 
 type Reiter =
   | 'punkte'
   | 'raeume'
+  | 'gebaeude'
   | 'grundriss'
   | 'verteilung'
   | 'trassen'
@@ -69,6 +71,7 @@ type UebersetzFn = (key: string, en: string) => string
 const reiterListe = (t: UebersetzFn): { id: Reiter; titel: string; frage: string }[] => [
   { id: 'punkte', titel: t('tab.points', 'Connection points'), frage: t('tab.points.q', 'What does this point provide, where is it, and is it free?') },
   { id: 'raeume', titel: t('tab.rooms', 'Rooms'), frage: t('tab.rooms.q', 'Which floors and rooms does the building have — under its own names?') },
+  { id: 'gebaeude', titel: t('tab.building', 'Building'), frage: t('tab.building.q', 'How do the rooms lie above and beside each other — and which runs and routes connect them?') },
   { id: 'grundriss', titel: t('tab.floorPlan', 'Floor plan'), frage: t('tab.floorPlan.q', 'Where in the room does this point sit — not just in which one?') },
   { id: 'verteilung', titel: t('tab.distribution', 'Distribution'), frage: t('tab.distribution.q', 'Which circuits belong together — and to what?') },
   { id: 'trassen', titel: t('tab.routes', 'Cable routes'), frage: t('tab.routes.q', 'Which route between two rooms still takes something?') },
@@ -102,6 +105,11 @@ const zaehler = (
       return format(t('status.rooms', '{e} floors · {r} rooms'), {
         e: g.etagen.length,
         r: g.raeume.length,
+      })
+    case 'gebaeude':
+      return format(t('status.building', '{r} rooms · {o} without position'), {
+        r: g.raeume.length,
+        o: g.raeume.filter((r) => !r.lage).length,
       })
     case 'grundriss':
       return format(t('status.floorPlan', '{n} of {all} points located'), {
@@ -241,6 +249,7 @@ export function App() {
         <p className="frage">{aktiv.frage}</p>
         {reiter === 'punkte' && <Anschlusspunkte />}
         {reiter === 'raeume' && <Raeume />}
+        {reiter === 'gebaeude' && <GebaeudeAnsicht />}
         {reiter === 'grundriss' && <Grundriss />}
         {reiter === 'verteilung' && <Verteilung />}
         {reiter === 'trassen' && <Trassen />}
