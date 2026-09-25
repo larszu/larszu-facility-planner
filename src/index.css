@@ -944,3 +944,80 @@ p.warnung { color: var(--warn); }
   border-color: var(--warn);
   color: var(--warn);
 }
+
+/* ── Gebaeude-Ansicht (QW12) ─────────────────────────────────────────────
+ *
+ * Isometrisch in SVG: Etagen uebereinander, Raeume als Koerper, Hausstrecken
+ * in Warn-Bernstein (dieselbe Farbe wie die Festverbindungen im Signalplan),
+ * Trassen gestrichelt. Ein Raum ohne Lage steht gestrichelt da — er ist
+ * eingereiht, nicht vermessen. */
+.gebaeude-flaeche {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: var(--steg-4);
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .gebaeude-flaeche { grid-template-columns: 1fr; }
+}
+
+.gebaeude-bild {
+  border: 1px solid var(--rand);
+  background: var(--flaeche);
+  overflow: auto;
+}
+
+.gebaeude-bild svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 20rem;
+  max-height: 72vh;
+}
+
+.raum-deckel { fill: var(--erhoben); fill-opacity: 0.6; stroke: var(--leise); stroke-width: 1; }
+.raum-seite { fill: var(--erhoben); fill-opacity: 0.35; stroke: var(--leise); stroke-width: 1; }
+.raum.angenommen polygon { stroke-dasharray: 4 3; fill-opacity: 0.15; }
+.raum-text { fill: var(--text); font-size: 11px; text-anchor: middle; }
+.raum-text-leise { fill: var(--leise); font-size: 10px; }
+
+.verbindung line { stroke-width: 2.5; }
+.verbindung.strecke line { stroke: var(--warn); }
+.verbindung.trasse line { stroke: var(--leise); stroke-width: 2; stroke-dasharray: 6 4; }
+.verbindung-text {
+  fill: var(--text);
+  font-size: 10px;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--flaeche);
+  stroke-width: 3px;
+}
+
+.gebaeude-liste {
+  border: 1px solid var(--rand);
+  background: var(--flaeche);
+  padding: var(--steg-3);
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.gebaeude-liste h3 {
+  margin: 0 0 var(--steg-2);
+  padding-bottom: var(--steg-2);
+  border-bottom: 1px solid var(--rand);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--leise);
+}
+
+.gebaeude-etage { margin-bottom: var(--steg-2); }
+.wahl.eingerueckt { padding-left: var(--steg-4); }
+.schmal-zahl { width: 4.5rem; }
+.hinweis-block { margin-bottom: var(--steg-3); }
+
+.lage-felder { display: flex; gap: var(--steg-1); align-items: center; flex-wrap: wrap; }
+.gebaeude-ansicht .wahl { align-items: center; padding: 0; }
+.gebaeude-ansicht .wahl.eingerueckt { padding-left: var(--steg-4); }

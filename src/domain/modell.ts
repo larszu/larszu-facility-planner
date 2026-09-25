@@ -273,6 +273,37 @@ export interface Etage {
   hoeheM?: number
 }
 
+/**
+ * Wo ein Raum im Haus liegt: seine Grundflaeche auf der Etage, in Metern vom
+ * Bezugspunkt des Hauses (x nach rechts, y in die Tiefe).
+ *
+ * Wozu: die Gebaeude-Ansicht stellt die Raeume danach nebeneinander und
+ * uebereinander, und eine Hausstrecke vom Saal im EG in die Regie im 2. OG
+ * laeuft dann dorthin, wo die Regie wirklich liegt. Fehlt die Lage, fehlt
+ * sie — die Ansicht reiht den Raum schematisch ein und sagt das, statt eine
+ * Lage zu erfinden.
+ */
+export interface RaumLage {
+  xM: number
+  yM: number
+  breiteM: number
+  tiefeM: number
+}
+
+/** Eine vollstaendige Lage: Ursprung endlich, Breite und Tiefe groesser null. */
+export const istRaumLage = (l: unknown): l is RaumLage => {
+  if (!l || typeof l !== 'object') return false
+  const o = l as Record<string, unknown>
+  return (
+    Number.isFinite(o.xM) &&
+    Number.isFinite(o.yM) &&
+    typeof o.breiteM === 'number' &&
+    o.breiteM > 0 &&
+    typeof o.tiefeM === 'number' &&
+    o.tiefeM > 0
+  )
+}
+
 /** Ein Raum des Gebaeudes, mit dem Bezeichner DES HAUSES. */
 export interface Raum {
   id: string
@@ -280,6 +311,8 @@ export interface Raum {
   /** Die Etage — verweist auf `Etage.id`. Fehlt sie, ist sie nicht angegeben. */
   etageId?: string
   grundriss?: Grundriss
+  /** Lage im Haus. Fehlt sie, ist sie nicht angegeben. */
+  lage?: RaumLage
   /**
    * Der Bezeichner, unter dem das Haus diesen Raum fuehrt (TIA-606, hauseigenes
    * Schema, Tuerschild). Der Plan zeigt ihn an und druckt ihn; er erfindet
@@ -548,6 +581,24 @@ const etagenAusFreitext = (
 }
 
 /**
+ * Eine unvollstaendige oder unsinnige Lage (aus einer Datei) faellt weg. Eine
+ * halbe Lage — Ursprung ohne Groesse — waere eine Flaeche, die jemand erfinden
+ * muesste, um sie zu zeichnen. Idempotent: ohne kaputte Lage kommt dieselbe
+ * Liste zurueck.
+ */
+const lagenHeilen = (raeume: Raum[]): Raum[] => {
+  const kaputt = (r: unknown): boolean =>
+    !!r && typeof r === 'object' && 'lage' in r && (r as Raum).lage !== undefined && !istRaumLage((r as Raum).lage)
+  if (!raeume.some(kaputt)) return raeume
+  return raeume.map((r) => {
+    if (!kaputt(r)) return r
+    const { lage: _weg, ...rest } = r
+    void _weg
+    return rest
+  })
+}
+
+/**
  * Ein geladenes Gebaeude auf den heutigen Stand bringen.
  *
  * ─── WARUM DAS NICHT `?? []` AN JEDER LESESTELLE IST ───────────────────────
@@ -567,7 +618,7 @@ export const heileGebaeude = (g: Gebaeude): Gebaeude => {
   return {
     ...g,
     etagen,
-    raeume,
+    raeume: lagenHeilen(raeume),
     punkte: g.punkte ?? [],
     stromkreise: g.stromkreise ?? [],
     verteilungen: g.verteilungen ?? [],
