@@ -46,7 +46,7 @@ die Schaltungslogik der Show ist dort gebaut und gehört dorthin.
 | `ort(objektId)` | Raum/Etage nach dem Bezeichner **des Hauses** |
 | `kreisGeschwister(punktId)` | was am selben RCD hängt |
 | `verfuegbarkeit(punktId)` | frei / belegt / geschaltet / gedimmt |
-| `steuerklinken()` | KNX/DALI/Crestron: nur die benannten Klinken, nicht das Bus-Modell |
+| `steuerklinken()` | KNX/DALI/Crestron/Vissonic: nur die benannten Klinken, nicht das Bus-Modell |
 | `hausStrecke(planKabelId)` | gehört diese Strecke dem Haus — und auf welcher Ader liegt das Kabel? |
 
 **KNX-Gruppenadressen lassen sich einlesen** statt abzutippen: die Ansicht
@@ -65,6 +65,15 @@ Hauses — auch Notlicht, Jalousien und Heizung. Heraus kommen deshalb
 Richtung (Vorgabe `lesen`, die harmlose Hälfte) und Bedeutung. Der Gruppenname
 aus der ETS steht als Vorschlag im Feld; er stammt von dem, der die Anlage
 programmiert hat, nicht von dem, der freigibt.
+
+**Jede Klinke trägt ihre Art, wo das System eine kennt.** DALI: Kurzadresse,
+Gruppe oder Broadcast. Crestron: Digital-, Analog- oder Serial-Join — Digital 12
+und Analog 12 sind zwei verschiedene Klinken. Vissonic: Kamera (bewegt eine
+Kamera) oder Mischer (der VIS-CATC hat einen einzigen Ausgang; ein Befehl dort
+ändert das Bild auf jedem Bildschirm). KNX braucht keine Art. Eine Klinke ohne
+passende Art wird in der Tabelle hervorgehoben, nicht still als die kleinste
+Reichweite gelesen. Echte Anlagen-Adressen gehören ins Dokument des
+Betreibers; ein Test hält private IPv4-Adressen aus dem Repo.
 
 **Etagen sind eine Liste, kein Freitext** (cable-planner#911). Die Sicht
 „Räume" pflegt die Etagen des Hauses — Name, Höhe der Fertigfußboden-Oberkante
