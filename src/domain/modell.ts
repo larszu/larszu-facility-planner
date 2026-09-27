@@ -353,10 +353,24 @@ export interface Steuerklinke {
    * erst, wenn es dunkel ist. Deshalb steht die Art als eigenes Feld und
    * nicht als Konvention im Adress-Text.
    *
-   * OPTIONAL, weil sie nur bei DALI wirklich zwei Bedeutungen hat: eine
-   * KNX-Gruppenadresse ist immer eine Gruppenadresse, und ein Pflichtfeld,
-   * das in vier von fuenf Systemen nur eine moegliche Antwort hat, wird
-   * ausgefuellt statt gelesen.
+   * ─── CRESTRON UND VISSONIC (Issue #2, 2026-09-27) ───────────────────────
+   *
+   * Crestron: die Klinke ist ein Join, den das Programm nach aussen gibt, und
+   * die Nummer allein sagt nicht, was man hineinschickt. Crestron kennt drei
+   * Signalarten (Glossar „Programming", docs.crestron.com): digital (0/1),
+   * analog (16 bit, 0–65535), seriell (Zeichenkette). Digital 12 und Analog
+   * 12 sind zwei verschiedene Klinken.
+   *
+   * Vissonic: am realen Projekt (larszu/av-control-center) gibt es zwei
+   * Reichweiten. Ein Kamera-Befehl (PTZ, Preset) bewegt EINE Kamera. Ein
+   * Befehl an den Mischer VIS-CATC aendert das EINE Ausgangsbild — das Geraet
+   * hat nur einen Videoausgang, alle Bildschirme zeigen dasselbe. Das ist
+   * der Unterschied zwischen Kurzadresse und Broadcast bei DALI.
+   *
+   * KNX und „sonstige" bleiben ohne Art: eine KNX-Gruppenadresse ist immer
+   * eine, und ein Pflichtfeld mit nur einer moeglichen Antwort wird
+   * ausgefuellt statt gelesen. Welche Art zu welchem System gehoert, steht
+   * in `ADRESSARTEN` — die Pruefung in `adresseMehrdeutig`.
    */
   adressart?: Adressart
   richtung: 'lesen' | 'schalten'
@@ -365,7 +379,27 @@ export interface Steuerklinke {
 }
 
 /** Art einer Steuer-Adresse. Siehe `Steuerklinke.adressart`. */
-export type Adressart = 'kurz' | 'gruppe' | 'broadcast'
+export type Adressart =
+  | 'kurz'
+  | 'gruppe'
+  | 'broadcast'
+  | 'digital'
+  | 'analog'
+  | 'seriell'
+  | 'kamera'
+  | 'mischer'
+
+/**
+ * Welche Adressarten ein System kennt. Leer heisst: die Adresse ist aus sich
+ * heraus eindeutig, das Feld bleibt weg.
+ */
+export const ADRESSARTEN: Readonly<Record<Steuersystem, readonly Adressart[]>> = {
+  knx: [],
+  dali: ['kurz', 'gruppe', 'broadcast'],
+  crestron: ['digital', 'analog', 'seriell'],
+  vissonic: ['kamera', 'mischer'],
+  sonstige: [],
+}
 
 /**
  * Eine Trasse des Hauses — der WEG, auf dem eine Leitung liegt (Issue #1).

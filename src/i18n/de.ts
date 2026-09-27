@@ -97,12 +97,22 @@ export const de: Record<string, string> = {
   'control.kind.group.short': 'Gruppe',
   'control.kind.short': 'Kurzadresse — ein Vorschaltgerät',
   'control.kind.short.short': 'Kurzadresse',
+  'control.kind.digital': 'Digital-Join — ein/aus (0 oder 1)',
+  'control.kind.digital.short': 'Digital-Join',
+  'control.kind.analog': 'Analog-Join — Wert 0 bis 65535',
+  'control.kind.analog.short': 'Analog-Join',
+  'control.kind.serial': 'Serial-Join — Zeichenkette',
+  'control.kind.serial.short': 'Serial-Join',
+  'control.kind.camera': 'Kamera — bewegt EINE Kamera (PTZ, Preset)',
+  'control.kind.camera.short': 'Kamera',
+  'control.kind.mixer': 'Mischer — ändert DAS Ausgangsbild, das jeder Bildschirm zeigt',
+  'control.kind.mixer.short': 'Mischer',
   'control.meaning': 'Bedeutung',
   'control.meaning.placeholder': 'Was passiert, wenn man sie benutzt',
   'control.release': 'Freigeben',
   'control.system': 'System',
   'control.table.caption':
-    'Hervorgehoben: eine DALI-Adresse ohne Art. „3" ist dort ein Vorschaltgerät, eine Gruppe von dreissig Leuchten oder alles am Bus — die Adresse allein sagt das nicht.',
+    'Hervorgehoben: eine Adresse ohne ihre Art. Bei DALI ist „3" ein Vorschaltgerät, eine Gruppe von dreissig Leuchten oder alles am Bus; bei Vissonic eine Kamera oder der eine Mischer-Ausgang; bei Crestron ist Digital 12 nicht Analog 12.',
 
   // ── Mängel ──
   'defects.col.by': 'Von',

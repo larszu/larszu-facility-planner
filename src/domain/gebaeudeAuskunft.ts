@@ -26,6 +26,7 @@ import type {
   StreckenAder,
   Trasse,
 } from './modell'
+import { ADRESSARTEN } from './modell'
 
 /**
  * Woher wissen wir, dass dieser Punkt geschaltet ist?
@@ -117,24 +118,23 @@ export const punkteMitLage = (
 /**
  * Ist diese Steuer-Adresse mehrdeutig?
  *
- * ─── NUR BEI DALI, UND DORT IMMER ──────────────────────────────────────────
+ * Mehrdeutig ist eine Klinke, deren System Adressarten kennt (`ADRESSARTEN`)
+ * und die keine davon traegt — auch eine Art aus einem fremden System zaehlt
+ * als keine.
  *
- * Bei DALI heisst „3" je nach Adressart etwas voellig anderes: ein einzelnes
- * Vorschaltgeraet, eine Gruppe von dreissig Leuchten, oder — bei Broadcast —
- * alles am Bus, das Notlicht des Hauses eingeschlossen. Steht die Art nicht
- * dabei, ist die Adresse eine Zahl ohne Reichweite.
+ * Bei DALI heisst „3" je nach Art ein Vorschaltgeraet, eine Gruppe oder —
+ * bei Broadcast — alles am Bus samt Notlicht. Bei Vissonic bewegt ein
+ * Kamera-Befehl eine Kamera, ein Mischer-Befehl aendert das einzige
+ * Ausgangsbild. Bei Crestron ist Digital 12 eine andere Klinke als Analog 12.
  *
- * DAS TRIFFT ÄLTERE DOKUMENTE. `adressart` kam am 2026-09-10 dazu; jede vorher
- * eingetragene DALI-Klinke hat sie nicht. Sie stillschweigend als Kurzadresse
- * zu lesen waere die bequeme Annahme und die gefaehrliche: sie macht aus einer
- * unbekannten Reichweite die kleinstmoegliche, und wer danach schaltet,
- * erfaehrt den Unterschied erst, wenn der Saal dunkel ist.
- *
- * Bei KNX, Crestron und Vissonic ist die Adresse aus sich heraus eindeutig —
- * dort fehlt nichts, wenn das Feld leer bleibt.
+ * DAS TRIFFT AELTERE DOKUMENTE: vor dem Feld eingetragene Klinken haben es
+ * nicht. Sie still als die kleinste Reichweite zu lesen waere die bequeme
+ * Annahme und die gefaehrliche.
  */
-export const adresseMehrdeutig = (klinke: Steuerklinke): boolean =>
-  klinke.system === 'dali' && klinke.adressart === undefined
+export const adresseMehrdeutig = (klinke: Steuerklinke): boolean => {
+  const arten = ADRESSARTEN[klinke.system] ?? []
+  return arten.length > 0 && !(klinke.adressart && arten.includes(klinke.adressart))
+}
 
 /**
  * Die Raeume in der Reihenfolge ihrer Etagen (cable-planner#911).

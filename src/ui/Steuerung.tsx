@@ -13,13 +13,13 @@
 // schaltet, ohne zu wissen, was passiert.
 // ───────────────────────────────────────────────────────────────────────────
 import { useState } from 'react'
-import { useT } from '../i18n'
+import { useT, type Uebersetzen } from '../i18n'
 import { TabelleRahmen } from './TabelleRahmen'
 import { Anlegen, Feld } from './Formular'
 import { useGebaeudeStore } from '../domain/store/gebaeudeStore'
 import { steuerklinken } from '../domain/vertrag'
 import { adresseMehrdeutig } from '../domain/gebaeudeAuskunft'
-import type { Adressart, Steuersystem } from '../domain/modell'
+import { ADRESSARTEN, type Adressart, type Steuersystem } from '../domain/modell'
 import { leseEtsExport, type EtsBefund, type EtsKandidat } from '../domain/etsImport'
 
 const SYSTEME: Steuersystem[] = ['knx', 'dali', 'crestron', 'vissonic', 'sonstige']
@@ -32,14 +32,12 @@ export function Steuerung() {
   const [adresse, setAdresse] = useState('')
   const [bedeutung, setBedeutung] = useState('')
   const [richtung, setRichtung] = useState<'lesen' | 'schalten'>('schalten')
-  // Issue #2 — bei DALI heisst „3" je nach Adressart etwas voellig
-  // anderes: ein Vorschaltgeraet, eine Gruppe von dreissig Leuchten, oder
-  // ueber Broadcast der ganze Bus samt Notlicht. Deshalb PFLICHT bei DALI
-  // und nur dort: eine KNX-Gruppenadresse ist immer eine Gruppenadresse,
-  // und ein Feld mit nur einer moeglichen Antwort wird ausgefuellt statt
-  // gelesen.
+  // Issue #2 — Pflicht, wo das System Adressarten kennt (DALI, Crestron,
+  // Vissonic), und nur dort. Begruendung an `Steuerklinke.adressart`.
   const [adressart, setAdressart] = useState<Adressart>('kurz')
-  const brauchtAdressart = system === 'dali'
+  const arten = ADRESSARTEN[system]
+  const brauchtAdressart = arten.length > 0
+  const artText = adressartText(t)
 
   const klinken = steuerklinken(gebaeude)
 
@@ -66,7 +64,16 @@ export function Steuerung() {
         }}
       >
         <Feld name={t('control.system', 'System')} schmal>
-          <select value={system} onChange={(e) => setSystem(e.target.value as Steuersystem)}>
+          <select
+            value={system}
+            onChange={(e) => {
+              const neu = e.target.value as Steuersystem
+              setSystem(neu)
+              // Keine Art aus dem alten System mitnehmen: DALI-„kurz" an
+              // einem Mischer waere eine Auskunft, die niemand gegeben hat.
+              if (ADRESSARTEN[neu].length > 0) setAdressart(ADRESSARTEN[neu][0])
+            }}
+          >
             {SYSTEME.map((s) => (
               <option key={s} value={s}>
                 {s.toUpperCase()}
@@ -80,11 +87,13 @@ export function Steuerung() {
         {brauchtAdressart && (
           <Feld name={t('control.addressKind', 'Address kind')}>
             <select value={adressart} onChange={(e) => setAdressart(e.target.value as Adressart)}>
-              {/* Die Kennungen `kurz`/`gruppe`/`broadcast` bleiben, was sie
-                  sind — Werte im Datensatz. Übersetzt wird, was davor steht. */}
-              <option value="kurz">{t('control.kind.short', 'Short address — one ballast')}</option>
-              <option value="gruppe">{t('control.kind.group', 'Group — everything in this group')}</option>
-              <option value="broadcast">{t('control.kind.broadcast', 'Broadcast — EVERYTHING on the bus')}</option>
+              {/* Die Kennungen bleiben, was sie sind — Werte im Datensatz.
+                  Übersetzt wird, was davor steht. */}
+              {arten.map((a) => (
+                <option key={a} value={a}>
+                  {artText[a].lang}
+                </option>
+              ))}
             </select>
           </Feld>
         )}
@@ -128,7 +137,7 @@ export function Steuerung() {
             <caption>
               {t(
                 'control.table.caption',
-                'Highlighted: a DALI address without a kind. There, "3" is one ballast, a group of thirty luminaires, or everything on the bus — the address alone does not say which.',
+                'Highlighted: an address without its kind. At DALI, "3" is one ballast, a group of thirty luminaires, or everything on the bus; at Vissonic, one camera or the one mixer output; at Crestron, digital 12 is not analog 12.',
               )}
             </caption>
             <thead>
@@ -153,13 +162,7 @@ export function Steuerung() {
                       und „Kurzadresse 3" schalten Verschiedenes. Wo sie
                       fehlt, steht ein Strich und keine Vermutung. */}
                   <td>
-                    {k.adressart
-                      ? {
-                          kurz: t('control.kind.short.short', 'short address'),
-                          gruppe: t('control.kind.group.short', 'group'),
-                          broadcast: t('control.kind.broadcast.short', 'broadcast'),
-                        }[k.adressart]
-                      : '—'}
+                    {k.adressart ? artText[k.adressart].kurz : '—'}
                   </td>
                   <td>
                     {k.richtung === 'schalten'
@@ -175,6 +178,44 @@ export function Steuerung() {
       )}
     </section>
   )
+}
+
+/** Beschriftung je Adressart — als Funktion, damit sie der gewaehlten Sprache folgt. */
+function adressartText(t: Uebersetzen): Record<Adressart, { lang: string; kurz: string }> {
+  return {
+    kurz: {
+      lang: t('control.kind.short', 'Short address — one ballast'),
+      kurz: t('control.kind.short.short', 'short address'),
+    },
+    gruppe: {
+      lang: t('control.kind.group', 'Group — everything in this group'),
+      kurz: t('control.kind.group.short', 'group'),
+    },
+    broadcast: {
+      lang: t('control.kind.broadcast', 'Broadcast — EVERYTHING on the bus'),
+      kurz: t('control.kind.broadcast.short', 'broadcast'),
+    },
+    digital: {
+      lang: t('control.kind.digital', 'Digital join — on/off (0 or 1)'),
+      kurz: t('control.kind.digital.short', 'digital join'),
+    },
+    analog: {
+      lang: t('control.kind.analog', 'Analog join — value 0 to 65535'),
+      kurz: t('control.kind.analog.short', 'analog join'),
+    },
+    seriell: {
+      lang: t('control.kind.serial', 'Serial join — character string'),
+      kurz: t('control.kind.serial.short', 'serial join'),
+    },
+    kamera: {
+      lang: t('control.kind.camera', 'Camera — moves ONE camera (PTZ, preset)'),
+      kurz: t('control.kind.camera.short', 'camera'),
+    },
+    mischer: {
+      lang: t('control.kind.mixer', 'Mixer — changes THE output picture every screen shows'),
+      kurz: t('control.kind.mixer.short', 'mixer'),
+    },
+  }
 }
 
 /**

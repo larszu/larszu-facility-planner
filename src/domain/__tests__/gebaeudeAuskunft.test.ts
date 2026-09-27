@@ -196,13 +196,31 @@ describe('Mehrdeutige Steuer-Adressen', () => {
     expect(adresseMehrdeutig(klinke({ id: 'k3', adressart: 'broadcast' }))).toBe(false)
   })
 
-  it('meldet KNX, Crestron und Vissonic NICHT', () => {
+  it('meldet KNX und sonstige NICHT', () => {
     // GEGENPROBE. Dort ist die Adresse aus sich heraus eindeutig; eine Warnung
     // an jeder Zeile waere Laerm, und Laerm liest nach der dritten Zeile
     // niemand mehr.
-    for (const system of ['knx', 'crestron', 'vissonic', 'sonstige'] as const) {
+    for (const system of ['knx', 'sonstige'] as const) {
       expect(adresseMehrdeutig(klinke({ id: `k-${system}`, system }))).toBe(false)
     }
+  })
+
+  it('verlangt bei Crestron die Signalart und bei Vissonic die Reichweite', () => {
+    expect(adresseMehrdeutig(klinke({ id: 'c0', system: 'crestron' }))).toBe(true)
+    expect(adresseMehrdeutig(klinke({ id: 'v0', system: 'vissonic' }))).toBe(true)
+    for (const adressart of ['digital', 'analog', 'seriell'] as const) {
+      expect(adresseMehrdeutig(klinke({ id: `c-${adressart}`, system: 'crestron', adressart }))).toBe(false)
+    }
+    for (const adressart of ['kamera', 'mischer'] as const) {
+      expect(adresseMehrdeutig(klinke({ id: `v-${adressart}`, system: 'vissonic', adressart }))).toBe(false)
+    }
+  })
+
+  it('liest eine Art aus einem fremden System als fehlend', () => {
+    // Eine Klinke, deren System nachtraeglich umgestellt wurde, traegt sonst
+    // eine Art, die dort nichts bedeutet — z. B. DALI-„kurz" an einem Mischer.
+    expect(adresseMehrdeutig(klinke({ id: 'x1', system: 'vissonic', adressart: 'kurz' }))).toBe(true)
+    expect(adresseMehrdeutig(klinke({ id: 'x2', system: 'dali', adressart: 'digital' }))).toBe(true)
   })
 })
 
