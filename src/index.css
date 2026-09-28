@@ -1038,3 +1038,8 @@ p.warnung { color: var(--warn); }
 .lage-felder { display: flex; gap: var(--steg-1); align-items: center; flex-wrap: wrap; }
 .gebaeude-ansicht .wahl { align-items: center; padding: 0; }
 .gebaeude-ansicht .wahl.eingerueckt { padding-left: var(--steg-4); }
+
+/* Unter 640 px schiebt das Signet die Menues aus dem Bild (mobil:check in cable-planner). */
+@media (max-width: 639px) {
+  .kopf-signet { display: none !important; }
+}
