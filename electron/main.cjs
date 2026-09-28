@@ -25,6 +25,11 @@
 const { app, BrowserWindow, shell } = require('electron')
 const path = require('path')
 
+// `userData` leitet Electron aus `productName` ab. Seit der Umbenennung in
+// „LZ Facility Planner" laege die localStorage-Aufnahme sonst in einem neuen,
+// leeren Ordner — also auf den alten Namen festnageln, bevor ihn irgendwer liest.
+if (app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'Facility Planner'))
+
 let fenster
 
 function fensterAnlegen() {
@@ -33,7 +38,7 @@ function fensterAnlegen() {
     height: 900,
     minWidth: 1024,
     minHeight: 700,
-    title: 'Facility Planner',
+    title: 'LZ Facility Planner',
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,

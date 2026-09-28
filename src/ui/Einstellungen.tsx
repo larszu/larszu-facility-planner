@@ -25,6 +25,8 @@
 import { useEffect, useState } from 'react'
 import { liesThema, setzeThema, type Thema } from '../lib/thema'
 import { useT, type Sprache } from '../i18n'
+import hauptlogoNavy from '../assets/brand/lzm_hauptlogo_navy.svg'
+import hauptlogoOffwhite from '../assets/brand/lzm_hauptlogo_offwhite.svg'
 
 type UebersetzFn = (key: string, en: string) => string
 
@@ -108,8 +110,14 @@ export function Einstellungen({ onClose }: { onClose: () => void }) {
           </section>
           <section>
             <h3>{t('settings.about', 'About')}</h3>
-            <p className="leise">Facility Planner {__APP_VERSION__}</p>
-            <p className="leise">{t('settings.about.body', 'The building tool of the AV Planner suite (ADR-006).')}</p>
+            <span className="ueber-logo" role="img" aria-label="Lars Zumpe Medienproduktion">
+              <img src={hauptlogoOffwhite} alt="" className="nur-dunkel" />
+              <img src={hauptlogoNavy} alt="" className="nur-hell" />
+            </span>
+            <p>LZ Facility Planner</p>
+            <p className="leise">{t('settings.about.version', 'Version')} {__APP_VERSION__}</p>
+            <p className="leise">Lars Zumpe Medienproduktion</p>
+            <p className="leise">{t('settings.about.body', 'The building tool of the LZ Planner Suite (ADR-006).')}</p>
           </section>
         </div>
         <footer className="dialog-fuss">

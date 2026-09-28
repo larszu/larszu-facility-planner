@@ -165,7 +165,7 @@ export const de: Record<string, string> = {
     'Der letzte Stand konnte nicht gespeichert werden: {grund}. Was seither eingetragen wurde, steht nur im Fenster.',
 
   // ── Kopfzeile und Datei-Menü ──
-  'menu.about': 'Über Facility Planner…',
+  'menu.about': 'Über LZ Facility Planner…',
   'menu.file': 'Datei',
   'menu.help': 'Hilfe',
   'menu.new': 'Neues Gebäude',
@@ -340,7 +340,8 @@ export const de: Record<string, string> = {
 
   // ── Einstellungen ──
   'settings.about': 'Über',
-  'settings.about.body': 'Das Gebäude-Werkzeug der AV-Planner-Suite (ADR-006).',
+  'settings.about.version': 'Version',
+  'settings.about.body': 'Das Gebäude-Werkzeug der LZ Planner Suite (ADR-006).',
   'settings.close': 'Schliessen',
   'settings.language': 'Sprache',
   'settings.language.hint':

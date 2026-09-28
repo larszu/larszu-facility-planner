@@ -2,7 +2,7 @@
 
 Anleitung für Claude Code (claude.ai/code) in diesem Repo.
 
-Facility Planner ist das **Gebäude-Werkzeug** der AV-Planner-Suite:
+LZ Facility Planner ist das **Gebäude-Werkzeug** der AV-Planner-Suite:
 Anschlusspunkte, Verteilung und Kreise, die benannten Klinken der
 Haussteuerung, Mängel. React 19 + TypeScript + Zustand + Vite, offline-first,
 Ablage in `localStorage`.
