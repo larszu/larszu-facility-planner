@@ -28,7 +28,7 @@ const path = require('path')
 // `userData` leitet Electron aus `productName` ab. Seit der Umbenennung in
 // „LZ Facility Planner" laege die localStorage-Aufnahme sonst in einem neuen,
 // leeren Ordner — also auf den alten Namen festnageln, bevor ihn irgendwer liest.
-app.setPath('userData', path.join(app.getPath('appData'), 'Facility Planner'))
+if (app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'Facility Planner'))
 
 let fenster
 
