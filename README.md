@@ -211,6 +211,16 @@ Feld und die Lagen bleiben gültig — an Bildpixel gehängt wären sie beim
 nächsten Scan falsch, ohne dass es jemand merkt. Ohne Massstab wird gar nichts
 gesetzt: eine geratene Länge sähe im Plan aus wie eine Auskunft des Hauses.
 
+**Ein Bild kommt per Drag & Drop oder *Bild wählen…* hinein** (PNG, JPG, WebP,
+GIF). Es wird auf höchstens 3000 px verkleinert und auf **diesem Rechner** in
+IndexedDB abgelegt; der Grundriss trägt nur die Adresse `planbild:<kennung>` —
+das Dokument bleibt so klein wie vorher. Laden und Verkleinern kommen aus
+`@avplan/floorplan` (Kopie unter `src/avplan/floorplan/`, ADR-015 der Suite;
+`avplanKopien.node.test.ts` lehnt eine geänderte Kopie ab). PDF-Pläne gehen
+hier noch nicht. Die Marken sitzen jetzt auch auf nicht quadratischen Plänen
+senkrecht richtig (vorher bezog sich `top: %` auf die Höhe statt auf die
+Breite).
+
 **Die Verbindung zum Show-Plan steht — anders, als hier stand.** Der Satz
 „der Planer fragt den Vertrag noch nicht ab" war stehengeblieben;
 nachgemessen am 2026-09-18 im `cable-planner` liest der Planer die

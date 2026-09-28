@@ -183,7 +183,7 @@ export const de: Record<string, string> = {
   'plan.image.missing':
     'Das Bild liegt auf diesem Rechner nicht vor. Die Lagen bleiben gültig — sie stehen in Metern, nicht in Pixeln.',
   'plan.image.none':
-    'Kein Grundriss hinterlegt. Die Lagen lassen sich trotzdem setzen, sobald ein Massstab da ist.',
+    'Kein Grundriss hinterlegt — ein Bild hier ablegen oder wählen. Die Lagen lassen sich trotzdem setzen, sobald ein Massstab da ist.',
   'plan.marker.title': '{name} — {x} m / {y} m',
   'plan.noScale':
     'Ohne Massstab wird nichts gesetzt. Ein Klick ins Bild ist ein Bruchteil einer Bildbreite; erst „Meter je Bildbreite" macht daraus eine Länge. Eine hier geratene Zahl sähe im Plan aus wie eine Auskunft des Hauses.',
@@ -195,7 +195,13 @@ export const de: Record<string, string> = {
   'plan.scale': 'Meter je Bildbreite',
   'plan.scale.placeholder': 'm/Bild',
   'plan.source': 'Bildquelle',
-  'plan.source.placeholder': 'Bildquelle (Pfad oder URL)',
+  'plan.source.placeholder': 'Bildquelle (URL), oder unten ein Bild ablegen',
+  'plan.image.choose': 'Bild wählen…',
+  'plan.image.local': 'Bild liegt auf diesem Rechner',
+  'plan.drop.pdf': 'PDF-Pläne gehen hier noch nicht — die Seite als PNG oder JPG exportieren.',
+  'plan.drop.failed': 'Das Bild ließ sich nicht lesen.',
+  'plan.drop.store': 'Das Bild ließ sich auf diesem Rechner nicht ablegen.',
+  'plan.drop.unsuitable': '{namen} ist kein Bild. Ein Grundriss kann PNG, JPG, WebP oder GIF sein.',
   'plan.table.caption':
     'Punkte dieses Raums. „Noch nicht verortet" ist eine Angabe und keine Lücke — deshalb steht hier kein 0/0.',
   'plan.x.aria': 'x von {name} in Metern',
