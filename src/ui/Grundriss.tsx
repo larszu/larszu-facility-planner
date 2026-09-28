@@ -30,14 +30,24 @@
 // linken oberen Ecke sieht aus wie eine Aussage über das Gebäude und ist
 // keine. Sie stehen stattdessen namentlich unter dem Bild — sichtbar als das,
 // was sie sind: noch nicht verortet.
+//
+// ─── BILD PER DRAG & DROP ODER AUSWAHL (2026-09-28) ────────────────────────
+//
+// Ein abgelegtes Bild hatte vorher keinen Weg hinein: kein Drop-Handler, und
+// Electron verwarf die Navigation zur Datei still. Jetzt nimmt das Feld ein
+// Bild an (Laden und Verkleinern aus `@avplan/floorplan`, ADR-015), legt es in
+// `lib/planBilder.ts` ab und traegt nur dessen Adresse ein — das Bild liegt
+// weiterhin nicht im Dokument.
 // ───────────────────────────────────────────────────────────────────────────
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { TabelleRahmen } from './TabelleRahmen'
 import { bauformText } from './beschriftungen'
 import { useGebaeudeStore } from '../domain/store/gebaeudeStore'
 import { punkteMitLage } from '../domain/gebaeudeAuskunft'
 import { anteilAusMeter, meterAusAnteil } from '../lib/massstab'
+import { ladePlanDatei, planAblage, planAccept, PlanDateiFehler } from '../avplan/floorplan'
+import { istPlanbild, planbildAblegen, planbildLesen } from '../lib/planBilder'
 
 export function Grundriss() {
   const { t, format } = useT()
@@ -49,12 +59,68 @@ export function Grundriss() {
   const [raumId, setRaumId] = useState(gebaeude.raeume[0]?.id ?? '')
   const [gewaehlt, setGewaehlt] = useState('')
   const [bildFehlt, setBildFehlt] = useState(false)
+  const [ziehtDrueber, setZiehtDrueber] = useState(false)
+  const [meldung, setMeldung] = useState('')
+  // Ein `planbild:` wird aus IndexedDB aufgeloest. Das Ergebnis traegt seine
+  // Adresse mit: nach einem Raumwechsel zaehlt das alte Bild nicht mehr.
+  const [aufgeloest, setAufgeloest] = useState<{ quelle: string; src: string | null } | null>(null)
   const feld = useRef<HTMLDivElement>(null)
+  const dateiWahl = useRef<HTMLInputElement>(null)
 
   const raum = gebaeude.raeume.find((r) => r.id === raumId)
   const grundriss = raum?.grundriss
   const massstab = grundriss?.meterProBild
   const setzbar = !!raum && typeof massstab === 'number' && massstab > 0
+
+  const quelle = grundriss?.quelle ?? ''
+  const lokal = istPlanbild(quelle)
+  useEffect(() => {
+    if (!lokal) return
+    let aktiv = true
+    void planbildLesen(quelle).then((src) => {
+      if (aktiv) setAufgeloest({ quelle, src })
+    })
+    return () => {
+      aktiv = false
+    }
+  }, [quelle, lokal])
+  const bildSrc = lokal ? (aufgeloest?.quelle === quelle ? aufgeloest.src : undefined) : quelle || undefined
+  // `undefined` heisst „wird noch gelesen", `null` „liegt hier nicht".
+  const bildDa = !!bildSrc && !bildFehlt
+
+  const bildUebernehmen = async (datei: File) => {
+    if (!raum) return
+    setMeldung('')
+    let src: string
+    try {
+      src = (await ladePlanDatei(datei)).src
+    } catch (e) {
+      setMeldung(
+        e instanceof PlanDateiFehler && e.code === 'pdf-nicht-verfuegbar'
+          ? t('plan.drop.pdf', 'PDF plans are not supported here yet — export the page as PNG or JPG.')
+          : t('plan.drop.failed', 'The image could not be read.'),
+      )
+      return
+    }
+    try {
+      const kennung = await planbildAblegen(src)
+      setBildFehlt(false)
+      raumAendern(raum.id, { grundriss: { quelle: kennung, meterProBild: grundriss?.meterProBild ?? 0 } })
+    } catch {
+      setMeldung(t('plan.drop.store', 'The image could not be stored on this computer.'))
+    }
+  }
+
+  const ablage = planAblage({
+    onDatei: (d) => void bildUebernehmen(d),
+    onAktiv: setZiehtDrueber,
+    onUngeeignet: (dateien) =>
+      setMeldung(
+        format(t('plan.drop.unsuitable', '{namen} is not an image. A floor plan can be PNG, JPG, WebP or GIF.'), {
+          namen: dateien.map((d) => d.name).join(', '),
+        }),
+      ),
+  })
 
   const punkteDesRaums = gebaeude.punkte.filter((p) => p.raumId === raumId)
   const verortet = raum ? punkteMitLage(gebaeude, raum.id) : []
@@ -124,6 +190,7 @@ export function Grundriss() {
             setRaumId(e.target.value)
             setGewaehlt('')
             setBildFehlt(false)
+            setMeldung('')
           }}
           aria-label={t('common.room', 'Room')}
         >
@@ -134,20 +201,38 @@ export function Grundriss() {
           ))}
         </select>
         <input
-          value={grundriss?.quelle ?? ''}
+          value={lokal ? '' : quelle}
           onChange={(e) => {
             setBildFehlt(false)
-            const quelle = e.target.value
+            const neu = e.target.value
             if (!raum) return
             raumAendern(raum.id, {
-              grundriss: quelle.trim()
-                ? { quelle, meterProBild: grundriss?.meterProBild ?? 0 }
+              grundriss: neu.trim()
+                ? { quelle: neu, meterProBild: grundriss?.meterProBild ?? 0 }
                 : undefined,
             })
           }}
-          placeholder={t('plan.source.placeholder', 'Image source (path or URL)')}
+          placeholder={
+            lokal
+              ? t('plan.image.local', 'Image stored on this computer')
+              : t('plan.source.placeholder', 'Image source (URL), or drop an image below')
+          }
           aria-label={t('plan.source', 'Image source')}
           size={38}
+        />
+        <button type="button" onClick={() => dateiWahl.current?.click()}>
+          {t('plan.image.choose', 'Choose image…')}
+        </button>
+        <input
+          ref={dateiWahl}
+          type="file"
+          accept={planAccept()}
+          hidden
+          onChange={(e) => {
+            const datei = e.target.files?.[0]
+            e.target.value = ''
+            if (datei) void bildUebernehmen(datei)
+          }}
         />
         <input
           className="schmal"
@@ -191,14 +276,25 @@ export function Grundriss() {
         </div>
       )}
 
+      {meldung && <p className="warnung">{meldung}</p>}
+
       <div
         ref={feld}
-        className={setzbar && gewaehlt ? 'grundriss-feld setzbar' : 'grundriss-feld'}
+        className={[
+          'grundriss-feld',
+          setzbar && gewaehlt ? 'setzbar' : '',
+          ziehtDrueber ? 'ablage' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         onClick={setzen}
+        onDragOver={ablage.onDragOver}
+        onDragLeave={ablage.onDragLeave}
+        onDrop={ablage.onDrop}
       >
-        {grundriss?.quelle && !bildFehlt ? (
+        {bildDa ? (
           <img
-            src={grundriss.quelle}
+            src={bildSrc}
             alt={format(t('plan.image.alt', 'Floor plan of {name}'), { name: raum?.name ?? '' })}
             onError={() => setBildFehlt(true)}
           />
@@ -213,14 +309,14 @@ export function Grundriss() {
                 oeffnenden Zeichen als Oberflaeche, und ein deutscher
                 Kommentar davor faellt dort als Fallback in der falschen
                 Sprache auf. */}
-            {grundriss?.quelle
+            {quelle && bildSrc !== undefined
               ? t(
                   'plan.image.missing',
                   'The image is not present on this machine. The positions stay valid — they are in metres, not in pixels.',
                 )
               : t(
                   'plan.image.none',
-                  'No floor plan stored. The positions can still be set as soon as a scale is there.',
+                  'No floor plan stored — drop an image here or choose one. The positions can still be set as soon as a scale is there.',
                 )}
           </p>
         )}
@@ -242,7 +338,11 @@ export function Grundriss() {
               // Datei-Menue lag und keine Klicks annahm (`pointer-events:
               // none`). Gemessen auf 1440 px: 37 px Ueberlappung.
               className={p.id === gewaehlt ? 'plan-marke gewaehlt' : 'plan-marke'}
-              style={{ left: `${links * 100}%`, top: `${oben * 100}%` }}
+              // `top` in `cqw` und nicht in %: die Lage steht fuer BEIDE Achsen
+              // als Anteil der Bild-BREITE (`lib/massstab.ts`), und `top: %`
+              // bezog sich auf die Hoehe des Felds. Auf jedem nicht
+              // quadratischen Plan sass die Marke senkrecht daneben.
+              style={{ left: `${links * 100}%`, top: `${oben * 100}cqw` }}
               title={format(t('plan.marker.title', '{name} — {x} m / {y} m'), {
                 name: p.bezeichnung,
                 x: p.lage.xM,

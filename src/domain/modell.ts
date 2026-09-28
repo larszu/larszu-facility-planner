@@ -240,7 +240,11 @@ export interface Verteilung {
  * angegeben und nicht in Pixeln.
  */
 export interface Grundriss {
-  /** Wo das Bild liegt: Dateipfad oder URL. */
+  /**
+   * Wo das Bild liegt: URL, oder `planbild:<kennung>` fuer ein abgelegtes Bild,
+   * das auf DIESEM Rechner liegt (`lib/planBilder.ts`). Auf einem anderen
+   * Rechner fehlt es — die Lagen bleiben gueltig, sie stehen in Metern.
+   */
   quelle: string
   /** Wie viele Meter eine Bildbreite abdeckt. Ohne das ist die Lage sinnlos. */
   meterProBild: number

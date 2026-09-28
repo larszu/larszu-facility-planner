@@ -902,12 +902,21 @@ p.warnung { color: var(--warn); }
  * und bleiben setzbar, wenn der Scan auf diesem Rechner fehlt (Issue #1). */
 .grundriss-feld {
   position: relative;
+  /* Groessenbezug fuer `cqw` der Marken: 1cqw ist ein Hundertstel der
+   * Feldbreite, und in Breiten stehen beide Achsen der Lage. */
+  container-type: inline-size;
   border: 1px solid var(--rand);
   background: var(--flaeche);
   min-height: 18rem;
   margin-bottom: var(--steg-4);
   padding: 0;
   overflow: hidden;
+}
+
+.grundriss-feld.ablage {
+  border-color: var(--warn);
+  outline: 2px dashed var(--warn);
+  outline-offset: -2px;
 }
 
 .grundriss-feld.setzbar {
