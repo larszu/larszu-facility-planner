@@ -335,7 +335,7 @@ export const de: Record<string, string> = {
   // ── Einstellungen ──
   'settings.about': 'Über',
   'settings.about.version': 'Version',
-  'settings.about.body': 'Das Gebäude-Werkzeug der AV-Planner-Suite (ADR-006).',
+  'settings.about.body': 'Das Gebäude-Werkzeug der LZ Planner Suite (ADR-006).',
   'settings.close': 'Schliessen',
   'settings.language': 'Sprache',
   'settings.language.hint':
