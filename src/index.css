@@ -32,6 +32,8 @@
   --gefahr: #B04A3F;                    /* Status: Fehler */
   --ok: #2F7D5C;                        /* Status: Erfolg */
   --signal: #D6402E;                    /* Tally-Rot — Fokusring, laufender Vorgang */
+  --logo-auf-dunkel: block;             /* Logo Off-White auf Navy, Navy auf Hell */
+  --logo-auf-hell: none;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 14px;
 
@@ -147,6 +149,17 @@ body {
   background: var(--flaeche);
   border-bottom: 1px solid var(--rand);
 }
+
+/* 32 px ist die Mindestgroesse des Signets am Bildschirm (Brand Guide 2.0). */
+.kopf-signet { display: flex; flex: none; }
+.kopf-signet img { height: 32px; width: auto; }
+
+.nur-dunkel { display: var(--logo-auf-dunkel); }
+.nur-hell { display: var(--logo-auf-hell); }
+
+/* 120 px ist die Mindestbreite des Hauptlogos; Schutzraum darunter. */
+.ueber-logo { display: block; margin-bottom: var(--steg-4); }
+.ueber-logo img { width: 160px; height: auto; }
 
 .kopf .marke {
   font-weight: 600;
@@ -335,6 +348,8 @@ body {
   --rand: rgba(19, 32, 64, 0.16);
   --text: #132040;
   --leise: #5A6B82;
+  --logo-auf-dunkel: none;
+  --logo-auf-hell: block;
 }
 
 @media (prefers-color-scheme: light) {
@@ -346,6 +361,8 @@ body {
     --rand: rgba(19, 32, 64, 0.16);
     --text: #132040;
     --leise: #5A6B82;
+    --logo-auf-dunkel: none;
+    --logo-auf-hell: block;
   }
 }
 

@@ -45,7 +45,7 @@
   },
   "build": {
     "appId": "com.larszumpe.facilityplanner",
-    "productName": "Facility Planner",
+    "productName": "LZ Facility Planner",
     "directories": {
       "output": "release"
     },
@@ -60,14 +60,14 @@
       ]
     },
     "portable": {
-      "artifactName": "Facility-Planner-Portable-${version}.${ext}"
+      "artifactName": "LZ-Facility-Planner-Portable-${version}.${ext}"
     },
     "nsis": {
       "oneClick": true,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "Facility-Planner-Setup-${version}.${ext}"
+      "artifactName": "LZ-Facility-Planner-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [
@@ -81,7 +81,7 @@
         }
       ],
       "category": "public.app-category.utilities",
-      "artifactName": "Facility-Planner-${version}-${arch}.${ext}",
+      "artifactName": "LZ-Facility-Planner-${version}-${arch}.${ext}",
       "identity": "-",
       "hardenedRuntime": false,
       "gatekeeperAssess": false

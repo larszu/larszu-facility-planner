@@ -1,4 +1,4 @@
-# Facility Planner
+# LZ Facility Planner
 
 Das **Gebäude** als eigenes Werkzeug: Anschlusspunkte, Verteilung und Kreise,
 die benannten Klinken der Haussteuerung — und der eine Rückweg für Mängel.
@@ -191,6 +191,20 @@ Mensch in den Repo-Einstellungen anlegen (*Settings → Pages → Source:
 Warnung am Lauf statt einer roten Spalte auf `main`. Sobald die Freigabe da
 ist, veröffentlicht der nächste Push von selbst; an der Datei ist nichts zu
 ändern.
+
+**Name und Datenordner.** Die Desktop-Fassung heisst „LZ Facility Planner",
+die Installer `LZ-Facility-Planner-Setup-<version>.exe`,
+`LZ-Facility-Planner-Portable-<version>.exe` und
+`LZ-Facility-Planner-<version>-<arch>.dmg`. Ihr `userData`-Ordner bleibt
+`Facility Planner` (festgenagelt in `electron/main.cjs`), damit eine vorhandene
+Aufnahme nach dem Update nicht verschwindet.
+
+**Icon und Logo.** App-Icon in `build/` (`icon.svg` ist die Vorlage, daneben
+`icon.png` und `icon.ico` für electron-builder), Favicon und Apple-Touch-Icon in
+`public/`. Die Logos der Lars Zumpe Medienproduktion liegen als Originalkontur
+in `src/assets/brand/`: das Signet „lz." steht links in der Kopfzeile — ohne
+Tally-Punkt, weil die Primärknöpfe im selben Sichtfeld schon den roten Punkt
+tragen —, das Hauptlogo unter *Einstellungen → About*.
 
 **Keine gekaufte Signatur.** Die macOS-Pakete tragen eine Ad-hoc-Signatur, die
 Windows-Installer gar keine. Beim ersten Start meldet sich der jeweilige

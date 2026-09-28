@@ -37,6 +37,8 @@ import { useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { Menue, MenuePunkt, MenueTrenner } from './Menue'
 import { Einstellungen } from './Einstellungen'
+import signetNavy from '../assets/brand/lzm_signet_navy.svg'
+import signetOffwhite from '../assets/brand/lzm_signet_offwhite.svg'
 
 interface Props {
   /** Der Gebäudename — er steht links wie der App-Name im Cable Planner. */
@@ -59,6 +61,12 @@ export function Kopfzeile({ name, onNeu, onSichern, onLaden }: Props) {
   return (
     <>
       <header className="kopf">
+        {/* Signet ohne Tally-Punkt: die Primaerknoepfe tragen im selben
+            Sichtfeld schon den roten Punkt, und es gibt nur einen pro Flaeche. */}
+        <span className="kopf-signet" role="img" aria-label="Lars Zumpe Medienproduktion">
+          <img src={signetOffwhite} alt="" className="nur-dunkel" />
+          <img src={signetNavy} alt="" className="nur-hell" />
+        </span>
         <span className="marke">{name || t('building.default', 'Building')}</span>
 
         <Menue label={t('menu.file', 'File')}>
@@ -110,7 +118,7 @@ export function Kopfzeile({ name, onNeu, onSichern, onLaden }: Props) {
         <Menue label={t('menu.help', 'Help')}>
           {(zu) => (
             <MenuePunkt onClick={() => { zu(); setEinstellungenOffen(true) }}>
-              {t('menu.about', 'About Facility Planner…')}
+              {t('menu.about', 'About LZ Facility Planner…')}
             </MenuePunkt>
           )}
         </Menue>
