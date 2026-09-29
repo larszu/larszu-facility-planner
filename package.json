@@ -1,5 +1,22 @@
 {
   "name": "larszu-facility-planner",
+  "description": "Venue and building infrastructure planner for events: power distribution, circuits, CEE/Schuko outlets, KNX and DALI building control points and defect tracking. Electron + React desktop app.",
+  "keywords": [
+    "facility-management",
+    "power-distribution",
+    "electrical-planning",
+    "venue-management",
+    "event-technology",
+    "building-automation",
+    "knx",
+    "dali",
+    "av-production",
+    "electron",
+    "react",
+    "typescript",
+    "desktop-app",
+    "offline-first"
+  ],
   "private": true,
   "avplan": {
     "sourceLanguage": "en"
