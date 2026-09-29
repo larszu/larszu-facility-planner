@@ -1,5 +1,10 @@
 # LZ Facility Planner
 
+> **Venue and building infrastructure planner for events** — connection points,
+> power distribution and circuits, named KNX/DALI building-control points, and a
+> return path for defects. Offline-first Electron desktop app, part of the
+> [LZ Planner Suite](https://github.com/larszu/lz-planner-suite).
+
 Das **Gebäude** als eigenes Werkzeug: Anschlusspunkte, Verteilung und Kreise,
 die benannten Klinken der Haussteuerung — und der eine Rückweg für Mängel.
 
